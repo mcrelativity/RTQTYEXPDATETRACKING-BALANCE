@@ -5,7 +5,7 @@ function SuperAdminPage() {
     return (
         <div className="page-container" style={{maxWidth: '600px'}}>
             <h1>Panel Superadministrador</h1>
-            <p>Selecciona una opción de gestión:</p>
+            <p>Selecciona una opción:</p>
             <div className='button-group' style={{flexDirection: 'column', gap: '10px', alignItems: 'stretch'}}>
                  <Link to="/superadmin/users" style={{ textDecoration: 'none' }}>
                     <button style={{width: '100%', marginTop: 0}}>Gestionar Usuarios</button>

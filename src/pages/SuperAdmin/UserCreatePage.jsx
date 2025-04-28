@@ -27,11 +27,11 @@ function UserCreatePage() {
                         name: storesData[key].name || key
                     }));
                     setStores(loadedStores);
-                    if(loadedStores.length > 0 && !storeId) { // Evitar resetear si ya hay uno
+                    if(loadedStores.length > 0 && !storeId) { 
                         setStoreId(loadedStores[0].id);
                     }
                 } else {
-                     setStores([]); // Asegurar array vacío si no hay tiendas
+                     setStores([]); 
                 }
             } catch (err) {
                 console.error("Error fetching stores:", err);
@@ -39,7 +39,7 @@ function UserCreatePage() {
             }
         };
         fetchStores();
-    }, [storeId]); // Añadir storeId como dependencia previene loop si se selecciona tienda inicial
+    }, [storeId]); 
 
     const handleCreateUser = async (e) => {
         e.preventDefault();
@@ -54,12 +54,12 @@ function UserCreatePage() {
         }
         setLoading(true);
 
-        let newUserUid = null; // Para guardar el UID temporalmente
+        let newUserUid = null; 
 
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const newUser = userCredential.user;
-            newUserUid = newUser.uid; // Guardar el UID
+            newUserUid = newUser.uid; 
             console.log("Usuario creado en Auth:", newUserUid);
 
             const userDbRef = ref(database, `users/${newUserUid}`);
@@ -69,17 +69,17 @@ function UserCreatePage() {
                 storeId: storeId
             };
 
-            console.log("Intentando guardar datos con Rol:", role); // Log de depuración
+            console.log("Intentando guardar datos con Rol:", role); 
             await set(userDbRef, userData);
             console.log("Datos guardados en RTDB para:", newUserUid);
 
-            // --- WORKAROUND ---
-            alert(`Usuario ${email} creado. La sesión del nuevo usuario se cerrará.`);
-            await signOut(auth); // Cerrar sesión del NUEVO usuario auto-logueado
+            
+            alert(`Usuario ${email} creado. Está sesión se cerrará por culpa de Firebase, debes reloguearte.`);
+            await signOut(auth); 
             console.log("Sesión del nuevo usuario cerrada.");
-            // --- FIN WORKAROUND ---
+            
 
-            navigate('/superadmin/users'); // Volver a la lista
+            navigate('/superadmin/users'); 
 
         } catch (err) {
             console.error("Error creating user or saving data:", err);
@@ -90,11 +90,10 @@ function UserCreatePage() {
             } else if (err.code === 'auth/weak-password') {
                  setError('La contraseña es demasiado débil (mínimo 6 caracteres).');
             } else {
-                 // Mostrar error de permiso si falló el set
+                 
                 setError(`Error en creación/guardado: ${err.message}`);
             }
-            // Considerar borrar usuario de Auth si falló RTDB set (lógica compleja)
-            // if (newUserUid && err.message.includes("PERMISSION_DENIED")) { ... delete user ... }
+        
         } finally {
             setLoading(false);
         }

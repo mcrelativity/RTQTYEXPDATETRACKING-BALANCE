@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { database } from '../../firebase/firebaseConfig';
 import { ref, get, query, orderByChild } from 'firebase/database';
 
+
 function UserListPage() {
     const navigate = useNavigate();
     const [usersList, setUsersList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -16,30 +18,50 @@ function UserListPage() {
             try {
                 const usersRef = ref(database, 'users');
                 
-                const usersQuery = query(usersRef, orderByChild('email'));
+                const usersQuery = query(usersRef, orderByChild('storeId'));
                 const snapshot = await get(usersQuery);
+
                 if (snapshot.exists()) {
                     const usersData = snapshot.val();
-                    
                     const loadedUsers = Object.keys(usersData).map(key => ({
                         uid: key,
                         ...usersData[key]
                     }));
+
+                    
+                    loadedUsers.sort((a, b) => {
+                        const storeA = a.storeId || '';
+                        const storeB = b.storeId || '';
+                        const emailA = a.email || '';
+                        const emailB = b.email || '';
+
+                        if (storeA < storeB) return -1;
+                        if (storeA > storeB) return 1;
+                        if (emailA < emailB) return -1;
+                        if (emailA > emailB) return 1;
+                        return 0;
+                    });
+
                     setUsersList(loadedUsers);
                 } else {
                     setUsersList([]);
                 }
             } catch (err) {
                 console.error("Error fetching users:", err);
-                setError('Error al cargar la lista de usuarios. Verifica las Reglas de Seguridad.');
+                 if (err.message && err.message.includes("index")) {
+                     setError('Error: Revisa que ".indexOn": ["storeId"] esté definido en las Reglas de Seguridad para /users.');
+                 } else {
+                    setError('Error al cargar la lista de usuarios. Verifica las Reglas de Seguridad.');
+                 }
             } finally {
                 setLoading(false);
             }
         };
         fetchUsers();
-    }, []);
+    }, []); 
 
     return (
+        
         <div className="page-container" style={{ maxWidth: '950px' }}>
             <h2>Gestión de Usuarios</h2>
             <div className="button-group" style={{ justifyContent: 'flex-end', marginTop: '-20px', marginBottom: '20px' }}>
@@ -64,6 +86,7 @@ function UserListPage() {
                             {usersList.length === 0 ? (
                                 <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No hay usuarios registrados.</td></tr>
                             ) : (
+                                
                                 usersList.map(user => (
                                     <tr key={user.uid} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '8px' }}>{user.email}</td>

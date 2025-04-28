@@ -223,3 +223,12 @@ button.secondary:hover:not(:disabled) {
   margin-top: 20px; 
   margin-bottom: 40px; 
 }
+
+
+select.compact-select {
+  padding: 5px 8px;
+  font-size: 0.9em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-left: 5px; /* Pequeño espacio entre ellos */
+}
