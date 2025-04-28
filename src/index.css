@@ -1,15 +1,13 @@
-
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f4f7f6; 
-  color: #333; 
+  background-color: #f4f7f6;
+  color: #333;
   line-height: 1.6;
 }
-
 
 #root {
   min-height: 100vh;
@@ -17,20 +15,18 @@ body {
   flex-direction: column;
 }
 
-
 * {
   box-sizing: border-box;
 }
 
-
 .page-container {
-  max-width: 500px; 
-  margin: 40px auto; 
+  max-width: 500px;
+  margin: 40px auto;
   padding: 30px 40px;
-  background-color: #ffffff; 
+  background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
-  animation: fadeIn 0.5s ease-in-out; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease-in-out;
 }
 
 @keyframes fadeIn {
@@ -38,9 +34,8 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-
 h1, h2 {
-  color: #2c3e50; 
+  color: #2c3e50;
   text-align: center;
   margin-top: 0;
   margin-bottom: 25px;
@@ -51,47 +46,54 @@ h2 {
   margin-bottom: 30px;
 }
 
-
 form {
   display: flex;
   flex-direction: column;
-  gap: 18px; 
+  gap: 0; 
 }
 
-form div {
-  
-  display: flex;
-  flex-direction: column;
+.input-group {
+   margin-bottom: 15px;
 }
 
-label {
-  margin-bottom: 6px;
-  font-weight: bold;
-  color: #34495e; 
-  font-size: 0.95em;
+.input-group label {
+   display: block;
+   margin-bottom: 6px;
+   font-weight: bold;
+   color: #34495e;
+   font-size: 0.95em;
 }
 
 input[type="text"],
 input[type="email"],
-input[type="password"] {
-  padding: 12px 15px;
-  border: 1px solid #bdc3c7; 
-  border-radius: 5px;
-  font-size: 1em;
+input[type="password"],
+input[type="number"] {
+  display: block;
   width: 100%;
+  padding: 10px 12px;
+  margin: 0;
+  font-size: 1em;
+  line-height: 1.5; /* Ajustado para consistencia */
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #bdc3c7;
+  border-radius: 5px;
+  box-sizing: border-box;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-input:focus {
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus {
   outline: none;
-  border-color: #3498db; 
+  border-color: #3498db;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
 }
 
-
 button {
   padding: 12px 20px;
-  background-color: #3498db; 
+  background-color: #3498db;
   color: white;
   border: none;
   border-radius: 5px;
@@ -99,47 +101,45 @@ button {
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.1s ease;
-  margin-top: 10px; 
+  margin-top: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 button:hover:not(:disabled) {
-  background-color: #2980b9; 
+  background-color: #2980b9;
 }
 
 button:active:not(:disabled) {
-    transform: translateY(1px); 
+    transform: translateY(1px);
 }
 
 button:disabled {
-  background-color: #aab8c2; 
+  background-color: #aab8c2;
   cursor: not-allowed;
 }
 
-
 .error-message {
-  color: #c0392b; /* Rojo oscuro */
-  background-color: #fdecea; /* Rojo muy pálido */
-  border: 1px solid #e74c3c; /* Borde rojo */
+  color: #c0392b;
+  background-color: #fdecea;
+  border: 1px solid #e74c3c;
   padding: 12px;
   border-radius: 5px;
-  margin: 10px 0; /* Espacio arriba/abajo */
+  margin: 10px 0;
   text-align: center;
   font-size: 0.95em;
 }
 
-/* Estilos para Párrafos y Enlaces */
 p {
   margin-top: 0;
   margin-bottom: 15px;
-  text-align: center; /* Centrar párrafos (ej. "¿Ya tienes cuenta?") */
+  text-align: center;
   color: #555;
   font-size: 0.95em;
 }
 
 a {
-  color: #3498db; /* Azul */
+  color: #3498db;
   text-decoration: none;
   font-weight: bold;
 }
@@ -149,85 +149,77 @@ a:hover {
   color: #2980b9;
 }
 
-/* Separador */
 hr {
   border: none;
-  border-top: 1px solid #ecf0f1; /* Gris muy claro */
+  border-top: 1px solid #ecf0f1;
   margin: 30px 0;
 }
 
-/* Estilos específicos para botones secundarios o de navegación */
 button.secondary {
-    background-color: #7f8c8d; /* Gris */
-    margin-right: 10px; /* Separar de otros botones */
+    background-color: #7f8c8d;
+    
 }
 button.secondary:hover:not(:disabled) {
     background-color: #6c7a7d;
 }
 
-/* Contenedor para botones en línea (ej. en HomePage) */
 .button-group {
     display: flex;
-    justify-content: center;
-    gap: 15px; /* Espacio entre botones */
+    
+    gap: 10px; 
     margin-top: 20px;
 }
 
-/* --- Estilos para Detalles del Producto (Añadir a index.css) --- */
-
-/* Contenedor de la lista de definición */
 .product-details-list {
-  margin-top: 15px; /* Espacio sobre la lista */
-  margin-bottom: 25px; /* Espacio debajo de la lista */
-  padding: 15px; /* Espacio interior */
-  background-color: #f8f9fa; /* Fondo ligeramente diferente */
+  margin-top: 5px; 
+  margin-bottom: 15px;
+  padding: 10px 15px; 
+  background-color: #f8f9fa;
   border-radius: 5px;
-  border: 1px solid #e9ecef; /* Borde sutil */
+  border: 1px solid #e9ecef;
 }
 
-/* Configuración de Grid para alinear dt (label) y dd (value) */
 .product-details-list dl {
   display: grid;
-  grid-template-columns: max-content auto; /* Columna 1 ajusta a contenido, Columna 2 toma resto */
-  gap: 8px 15px; /* Espacio vertical y horizontal entre filas/columnas */
-  margin: 0; /* Resetear margen por defecto de dl */
+  grid-template-columns: max-content auto;
+  gap: 6px 10px;
+  margin: 0;
+  align-items: baseline;
 }
 
-/* Estilo para el término/label (dt) */
 .product-details-list dt {
+  grid-column: 1;
   font-weight: bold;
-  color: #495057; /* Color de texto un poco más oscuro */
-  grid-column: 1; /* Asegurar que esté en la primera columna */
-  text-align: right; /* Alinear a la derecha para cercanía con valor */
+  text-align: right;
+  color: #495057;
+  padding-right: 5px; 
 }
 
-/* Estilo para la definición/valor (dd) */
 .product-details-list dd {
-  margin: 0; /* Resetear margen por defecto de dd */
-  grid-column: 2; /* Asegurar que esté en la segunda columna */
+  grid-column: 2;
+  margin: 0;
   color: #333;
 }
 
-
-
-
-input[type="number"] {
-  padding: 12px 15px; 
-  border: 1px solid #bdc3c7;
-  border-radius: 5px;
-  font-size: 1em; 
-  width: 100%; 
+.home-icon-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 2.2em;
+  line-height: 1;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.2s ease;
   
 }
 
-input[type="number"]:focus {
-  outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); /* Igual que otros inputs */
+.home-icon-button:hover {
+  color: #3498db;
 }
 
-/* Contenedor específico si se necesita (opcional por ahora) */
-.quantity-input-container {
- /* Puedes añadir estilos específicos aquí si width: 100% no es suficiente */
- /* Por ejemplo: max-width: 150px; si quisieras limitarlo */
+.page-container.stock-entry-layout {
+  max-width: 1200px;
+  margin-top: 20px; 
+  margin-bottom: 40px; 
 }

@@ -51,7 +51,7 @@ function SignUpPage() {
   };
 
   return (
-    <div className="page-container"> {/* <--- Contenedor aplicado */}
+    <div className="page-container"> 
       <h2>Crear Cuenta</h2>
       <form onSubmit={handleSignUp}>
         <div>
@@ -89,7 +89,7 @@ function SignUpPage() {
             disabled={loading}
           />
         </div>
-        {error && <p className="error-message">{error}</p>} {/* <--- Clase aplicada */}
+        {error && <p className="error-message">{error}</p>} 
         <button type="submit" disabled={loading}>
           {loading ? 'Registrando...' : 'Registrarse'}
         </button>

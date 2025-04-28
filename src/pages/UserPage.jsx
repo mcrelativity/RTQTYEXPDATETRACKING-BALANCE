@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function UserPage() {
-  const { userData } = useAuth(); // Usamos el objeto userData completo
+  const { userData } = useAuth(); 
   const navigate = useNavigate();
 
   return (
@@ -14,7 +14,7 @@ function UserPage() {
           <p><strong>Email:</strong> {userData.email}</p>
           <p><strong>Rol:</strong> {userData.role || 'No asignado'}</p>
           <p><strong>Local Asignado:</strong> {userData.storeName || 'No asignado'}</p>
-          {/* Podrías añadir opción para cambiar contraseña aquí */}
+          
         </>
       ) : (
         <p>No se pudo cargar la información del usuario.</p>

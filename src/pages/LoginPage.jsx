@@ -60,7 +60,7 @@ function LoginPage() {
           {loading ? 'Ingresando...' : 'Ingresar'}
         </button>
       </form>
-      {/* Se eliminó el párrafo y enlace a SignUp */}
+      
     </div>
   );
 }

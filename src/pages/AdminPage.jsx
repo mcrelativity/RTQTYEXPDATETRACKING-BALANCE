@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { database } from '../firebase/firebaseConfig';
@@ -12,6 +12,9 @@ function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const searchInputRef = useRef(null); 
+
+  
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -23,8 +26,8 @@ function AdminPage() {
   };
 
   useEffect(() => {
-    if (userData?.role !== 'admin') {
-      setError('Acceso denegado. Se requiere rol de administrador.');
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'superadmin')) {
+      setError('Acceso denegado. Se requiere rol de administrador o superior.');
       setLoading(false);
       return;
     }
@@ -48,15 +51,13 @@ function AdminPage() {
       }
     };
     fetchData();
-  }, [userData?.role]);
+  }, [userData]);
 
   const filteredData = useMemo(() => {
     if (!searchTerm) return allStockData;
     if (!allStockData) return {};
-
     const lowerSearchTerm = searchTerm.toLowerCase();
     const filtered = {};
-
     Object.entries(allStockData).forEach(([storeId, storeStock]) => {
       const storeMatches = {};
       let storeHasMatches = false;
@@ -75,7 +76,6 @@ function AdminPage() {
               String(entry.expiryMonth).padStart(2,'0').includes(lowerSearchTerm) ||
               String(entry.expiryYear).includes(lowerSearchTerm) ||
               formatTimestamp(entry.timestamp).toLowerCase().includes(lowerSearchTerm);
-
             if (matches) {
               matchingEntries[entryId] = entry;
               productHasMatches = true;
@@ -94,14 +94,22 @@ function AdminPage() {
     return filtered;
   }, [allStockData, searchTerm]);
 
-
   if (loading) {
     return <div className="page-container" style={{marginTop: '20px'}}><p>Cargando datos de administrador...</p></div>;
   }
 
-  if (error) {
-     return <div className="page-container" style={{marginTop: '20px'}}><p className="error-message">{error}</p></div>;
-  }
+   if (error) {
+     return (
+         <div className="page-container" style={{marginTop: '20px'}}>
+            <p className="error-message">{error}</p>
+            {(userData?.role === 'admin' || userData?.role === 'superadmin') && (
+                <div className="button-group" style={{justifyContent: 'center'}}>
+                    <button className='secondary' onClick={()=>navigate('/home')}>Volver a Home</button>
+                </div>
+            )}
+         </div>
+     );
+   }
 
   const hasResults = filteredData && Object.keys(filteredData).length > 0;
 
@@ -112,6 +120,8 @@ function AdminPage() {
       {userData?.storeName && <p>Local Asignado (para ingresos): {userData.storeName}</p>}
        <div style={{ margin: '20px 0' }}>
             <input
+                ref={searchInputRef} 
+                autoFocus 
                 type="text"
                 placeholder="Buscar por ID/Nombre Producto, Email, Cód. Barras, Cantidad, Fecha..."
                 value={searchTerm}
@@ -119,7 +129,7 @@ function AdminPage() {
                 style={{ width: '100%', padding: '10px' }}
             />
        </div>
-      <hr/>
+      <hr style={{marginTop: 0}}/>
 
       {!hasResults && searchTerm && <p>No se encontraron registros que coincidan con "{searchTerm}".</p>}
       {!hasResults && !searchTerm && <p>No hay datos de stock registrados en ningún local.</p>}
@@ -134,30 +144,18 @@ function AdminPage() {
               {storeStock && Object.keys(storeStock).length > 0 ? (
                 Object.entries(storeStock).map(([productId, productInfo]) => (
                   <div key={productId} style={{ marginBottom: '15px' }}>
-                    {/* Ya no mostramos el ID aquí, va dentro del li */}
                     {productInfo.entries && Object.keys(productInfo.entries).length > 0 ? (
                       <ul style={{ listStyle: 'none', paddingLeft: '15px', margin: 0 }}>
                         {Object.entries(productInfo.entries).map(([entryId, entry]) => (
-                          // --- LI Modificado ---
-                          <li key={entryId} style={{
-                              borderBottom: '1px dotted #ccc',
-                              padding: '8px 0', // Más padding vertical
-                              fontSize: '0.9em',
-                              lineHeight: '1.5' // Mejorar espacio entre líneas
-                          }}>
-                              <strong style={{ display: 'block', marginBottom: '4px', color: '#1a5276' }}>
-                                  {entry.productName || `Producto ID: ${productId}`} {/* Nombre o ID si falta */}
+                          <li key={entryId} style={{ borderBottom: '1px dotted #ccc', padding: '8px 0', fontSize: '0.9em', lineHeight: '1.5' }}>
+                              <strong style={{ display: 'block', marginBottom: '4px', color: '#1a5276', fontSize: 20 }}>
+                                Ref: {productId} - {entry.productName || `Producto ID: ${productId}`}
                               </strong>
-                              <span style={{ color: '#555' }}>
-                                  Cant: {entry.quantity} |
-                                  Vence: {String(entry.expiryMonth).padStart(2, '0')}/{entry.expiryYear} |
-                                  User: {entry.userEmail} |
-                                  Fecha: {formatTimestamp(entry.timestamp)} |
-                                  Cód. Barra: {entry.barcodeUsed} |
-                                  Ref: {productId} {/* ID/Ref al final */}
+                              <span style={{ color: '#555', fontSize: 20 }}>
+                                  Cant: {entry.quantity} -
+                                  Vence: {String(entry.expiryMonth).padStart(2, '0')}/{entry.expiryYear}
                               </span>
                           </li>
-                          // --- Fin LI Modificado ---
                         ))}
                       </ul>
                     ) : (
@@ -173,7 +171,7 @@ function AdminPage() {
         ))
       }
 
-      <div className="button-group" style={{marginTop: '30px'}}>
+      <div className="button-group" style={{marginTop: '30px', justifyContent: 'center'}}>
         <button className="secondary" onClick={() => navigate('/home')}>Volver a Home</button>
       </div>
     </div>

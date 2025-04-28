@@ -14,14 +14,17 @@ function HomePage() {
       <div className="button-group">
           <button onClick={() => navigate('/stock-entry')}>Ingresar Stock y Fecha de Vencimiento</button>
 
-          {/* Botón solo para Admin */}
+         
           {userData?.role === 'admin' && (
-              <button className="secondary" onClick={() => navigate('/admin')}>Panel Admin</button>
+              <button className="secondary" onClick={() => navigate('/admin')}>Inventario</button>
           )}
-          {/* Se eliminó el botón Ver Perfil */}
+          
+          {userData?.role === 'superadmin' && (
+            <button className="secondary" onClick={() => navigate('/superadmin')}>Panel SuperAdmin</button>
+          )}
+
       </div>
-       {/* El botón de Logout está en MainLayout */}
-       {/* La info de usuario/rol está en MainLayout */}
+       
     </div>
   );
 }
