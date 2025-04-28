@@ -1,4 +1,4 @@
-# Rastreador de Stock y Vencimientos (GalenoTest)
+# Rastreador de Stock y Vencimientos (GalenoQtyExpTrckr)
 
 Aplicación web interna desarrollada con React y Firebase para el seguimiento de ingresos de stock y fechas de vencimiento de productos farmacéuticos en múltiples locales. Permite buscar productos por código de barras, registrar nuevas entradas de stock con cantidad y vencimiento, y visualizar el inventario registrado. Incluye gestión de usuarios por roles (admin, user) y asignación a locales específicos.
 
