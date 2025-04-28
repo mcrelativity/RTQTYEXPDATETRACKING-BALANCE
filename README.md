@@ -1,12 +1,29 @@
-# React + Vite
+# Rastreador de Stock y Vencimientos (GalenoQtyExpTrckr)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web interna desarrollada con React y Firebase para el seguimiento de ingresos de stock y fechas de vencimiento de productos farmacéuticos en múltiples locales. Permite buscar productos por código de barras, registrar nuevas entradas de stock con cantidad y vencimiento, y visualizar el inventario registrado. Incluye gestión de usuarios por roles (admin, user) y asignación a locales específicos.
 
-Currently, two official plugins are available:
+## Características Principales ✨
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* Login de usuarios predefinidos a través de Firebase Authentication.
+* Roles de usuario (Admin, User) con asignación a locales específicos almacenados en Realtime Database.
+* Búsqueda de productos por código de barras (soporta múltiples códigos por producto) usando un índice en Realtime Database.
+* Formulario de ingreso de stock: Cantidad y Fecha de Vencimiento (Mes/Año).
+* Almacenamiento detallado de cada entrada de stock por local (`/stock/{storeId}/{productId}/entries`).
+* Registro de usuario (email) y timestamp del servidor en cada entrada de stock.
+* Vista de Administrador para visualizar todas las entradas de stock de todos los locales.
+* Funcionalidad de búsqueda dentro de la vista de Administrador.
+* Vista de Administrador con secciones colapsables por local para mejor organización.
+* Interfaz de usuario básica y funcional con CSS simple.
+* Navegación entre páginas con React Router DOM.
+* Gestión de estado de autenticación global con React Context API.
+* Layout principal consistente con información del usuario/local y botón de logout.
 
-## Expanding the ESLint configuration
+## Tech Stack 💻
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **Frontend:** React (v18+) con Vite, JavaScript (ES6+), CSS3
+* **Backend & Database:** Firebase
+    * Firebase Authentication (Email/Password)
+    * Firebase Realtime Database
+* **Routing:** React Router DOM (v6)
+* **Estado Global:** React Context API
+* **(Proceso Inicial):** Script de Python con Pandas y Openpyxl para conversión de Excel a JSON.
