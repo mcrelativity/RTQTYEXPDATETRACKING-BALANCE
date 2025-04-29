@@ -124,18 +124,17 @@ function StockEntryPage() {
                  <h2 style={{ flexGrow: 1, textAlign: 'center', margin: 0, padding: '0 5px' }}>
                     Ingreso de Stock y Fecha de Vencimiento
                  </h2>
-                 {/* Placeholder invisible para balancear el botón home y centrar el título */}
-                 {/* Ajusta el width/padding para que coincida visualmente con el botón home */}
+                 
                  <div style={{ width: '2.5em', visibility: 'hidden', flexShrink: 0 }}></div>
             </div>
-            {/* --- Fin Contenedor Título --- */}
+            
 
 
-            {/* --- Renderizado Condicional --- */}
+           
             {!productData ? (
-                // --- VISTA INICIAL (SIN PRODUCTO ENCONTRADO) ---
+                
                 <>
-                    {/* Div extra para centrar y limitar ancho del input inicial */}
+                    
                     <div className="input-group" style={{ maxWidth: '480px', margin: '40px auto 20px auto' }}>
                         <label htmlFor="barcode">Código de Barras:</label>
                         <input
@@ -145,7 +144,7 @@ function StockEntryPage() {
                             value={barcodeInput}
                             onChange={(e) => setBarcodeInput(e.target.value)}
                             placeholder="Ingresa o escanea el código..."
-                            style={{ width: '100%', padding: '10px' }} // Tamaño normal/reducido
+                            style={{ width: '100%', padding: '10px' }} 
                             disabled={isLoadingProduct || isSubmitting }
                         />
                     </div>
@@ -161,10 +160,10 @@ function StockEntryPage() {
                      )}
                 </>
             ) : (
-                // --- VISTA POST-BÚSQUEDA (CON PRODUCTO ENCONTRADO - 2 COLUMNAS) ---
+                
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', paddingTop: '10px', borderTop: '1px solid #eee', marginTop:'20px' }}>
 
-                    {/* --- Columna Izquierda: Búsqueda + Detalles --- */}
+                    
                     <div style={{ flex: '1', minWidth: '300px', padding: '0 10px' }}>
                         <div className="input-group" style={{ marginBottom: '20px' }}>
                             <label htmlFor="barcode-search-again" style={{fontSize: '0.9em'}}>Código de Barras:</label>
@@ -184,40 +183,40 @@ function StockEntryPage() {
                         <h3 style={{marginTop: 0, marginBottom: '10px'}}>Producto Encontrado:</h3>
                         <div className="product-details-list" style={{marginTop: 0, marginBottom: 0, padding: '10px'}}>
                            <dl>
-                               <dt>Código Ref:</dt><dd>{productId}</dd>
                                <dt>Nombre:</dt><dd>{productData.name}</dd>
-                               <dt>Laboratorio:</dt><dd>{productData.laboratory}</dd>
+                               <dt>Código Ref:</dt><dd>{productId}</dd>
+                               <dt>Laboratorio:</dt><dd>{productData.laboratory}</dd> 
                            </dl>
                         </div>
                     </div>
 
-                    {/* --- Columna Derecha: Formulario Ingreso + Acciones --- */}
+                    
                     <div style={{ flex: '1', minWidth: '300px', padding: '0 10px' }}>
                         <form onSubmit={handleSubmitEntry}>
                             <div className="input-group">
-                               <label htmlFor="quantity">Cantidad:</label>
+                               <label style={{ height: '22px'}} htmlFor="quantity">Cantidad:</label>
                                <input id="quantity" type="number" className="quantity-input" value={quantity} onChange={(e) => setQuantity(e.target.value)} min="1" required disabled={isSubmitting}/>
                             </div>
-                            <div style={{ display: 'flex', gap: '15px' }} className="input-group"> {/* Agrupar selects */}
+                            <div style={{ display: 'flex', gap: '15px' }} className="input-group"> 
                                <div style={{ flex: 1 }}>
                                    <label htmlFor="expiryMonth">Mes Venc.:</label>
-                                   <select id="expiryMonth" value={expiryMonth} onChange={(e) => setExpiryMonth(e.target.value)} required disabled={isSubmitting} style={{width: '100%', padding: '10px', border: '1px solid #bdc3c7', borderRadius: '5px'}}>
+                                   <select id="expiryMonth" value={expiryMonth} onChange={(e) => setExpiryMonth(e.target.value)} required disabled={isSubmitting} style={{width: '100%', padding: '12px', border: '1px solid #bdc3c7', borderRadius: '5px'}}>
                                       <option value="">Mes</option>
                                       {months.map(m => <option key={m} value={m}>{m < 10 ? '0'+m : m}</option>)}
                                    </select>
                                </div>
                                <div style={{ flex: 1 }}>
                                    <label htmlFor="expiryYear">Año Venc.:</label>
-                                   <select id="expiryYear" value={expiryYear} onChange={(e) => setExpiryYear(e.target.value)} required disabled={isSubmitting} style={{width: '100%', padding: '10px', border: '1px solid #bdc3c7', borderRadius: '5px'}}>
+                                   <select id="expiryYear" value={expiryYear} onChange={(e) => setExpiryYear(e.target.value)} required disabled={isSubmitting} style={{width: '100%', padding: '12px', border: '1px solid #bdc3c7', borderRadius: '5px'}}>
                                        <option value="">Año</option>
                                        {years.map(y => <option key={y} value={y}>{y}</option>)}
                                    </select>
                                </div>
                             </div>
-                            {/* Botones con margen superior reducido */}
+                            
                             <div className="button-group" style={{marginTop: '20px', justifyContent: 'flex-start', flexWrap: 'wrap'}}>
                                 <button type="submit" disabled={isSubmitting} style={{marginRight: '10px', marginBottom: '10px'}}>
-                                   {isSubmitting ? 'Ingresando...' : 'Ingresar Stock'}
+                                   {isSubmitting ? 'Ingresando...' : 'Ingresar'}
                                 </button>
                                  <button type="button" className="secondary" onClick={handleClearForm} disabled={isSubmitting} style={{marginRight: '10px', marginBottom: '10px'}}>
                                     Limpiar
