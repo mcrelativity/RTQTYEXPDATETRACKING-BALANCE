@@ -7,6 +7,7 @@ Aplicación web interna desarrollada con React y Firebase para el seguimiento de
 * Login de usuarios predefinidos a través de Firebase Authentication.
 * Roles de usuario (Admin, User) con asignación a locales específicos almacenados en Realtime Database.
 * Búsqueda de productos por código de barras (soporta múltiples códigos por producto) usando un índice en Realtime Database.
+* Exportación a Excel.
 * Formulario de ingreso de stock: Cantidad y Fecha de Vencimiento (Mes/Año).
 * Almacenamiento detallado de cada entrada de stock por local (`/stock/{storeId}/{productId}/entries`).
 * Registro de usuario (email) y timestamp del servidor en cada entrada de stock.
