@@ -28,3 +28,4 @@ Aplicación web interna desarrollada con React y Firebase para el seguimiento de
 * **Routing:** React Router DOM (v6)
 * **Estado Global:** React Context API
 * **(Proceso Inicial):** Script de Python con Pandas y Openpyxl para conversión de Excel a JSON.
+* **(Proceso Final):** Uso de librería SheetJS (xlsx) para conversión y exportación de JSON a Excel.
