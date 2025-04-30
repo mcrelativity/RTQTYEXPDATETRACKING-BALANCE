@@ -5,10 +5,10 @@ import { useAuth } from './context/AuthContext';
 import MainLayout from './layout/MainLayout';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
-import AdminPage from './pages/AdminPage'; // Vista Admin normal (ver stock)
+import AdminPage from './pages/AdminPage'; 
 import StockEntryPage from './pages/StockEntryPage';
 
-// Nuevas páginas SuperAdmin
+
 import SuperAdminPage from './pages/SuperAdmin/SuperAdminPage';
 import UserListPage from './pages/SuperAdmin/UserListPage';
 import UserCreatePage from './pages/SuperAdmin/UserCreatePage';
@@ -25,7 +25,7 @@ function RoleProtectedRoute({ children, allowedRoles }) {
   const { currentUser, userRole, loading } = useAuth();
   if (loading) return <div>Verificando permisos...</div>;
   if (!currentUser) return <Navigate to="/login" replace />;
-  // Asegurarse que allowedRoles sea siempre un array
+  
   const rolesToCheck = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
   if (!rolesToCheck.includes(userRole)) {
     console.warn(`Acceso denegado para rol: ${userRole}. Permitidos: ${rolesToCheck}`);

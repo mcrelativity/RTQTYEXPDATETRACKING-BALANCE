@@ -10,6 +10,8 @@ function AdminPage() {
     const navigate = useNavigate();
     const [allStockData, setAllStockData] = useState(null);
     const [storesData, setStoresData] = useState({});
+    const [productsData, setProductsData] = useState(null);
+    const [ropsData, setRopsData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -26,7 +28,7 @@ function AdminPage() {
     const yearOptions = Array.from({ length: 6 }, (_, i) => currentYearForOptions + i);
 
     const displayMonthName = monthNames[selectedMonth];
-    const pageTitle = `Panel Administración - Stock y F.D.V Ingresados ${displayMonthName} ${selectedYear}`;
+    const pageTitle = `Panel Administración - Stock y F.D.V ${displayMonthName} ${selectedYear}`;
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return 'N/A';
@@ -46,156 +48,215 @@ function AdminPage() {
             setLoading(true); setError('');
             try {
                 const stockRef = ref(database, 'stock');
-                const stockSnapshot = await get(stockRef);
-                setAllStockData(stockSnapshot.exists() ? stockSnapshot.val() : {});
                 const storesRef = ref(database, 'stores');
-                const storesSnapshot = await get(storesRef);
+                const productsRef = ref(database, 'products');
+                const ropsRef = ref(database, 'rops');
+
+                const [stockSnapshot, storesSnapshot, productsSnapshot, ropsSnapshot] = await Promise.all([
+                    get(stockRef), get(storesRef), get(productsRef), get(ropsRef)
+                ]);
+
+                setAllStockData(stockSnapshot.exists() ? stockSnapshot.val() : {});
                 setStoresData(storesSnapshot.exists() ? storesSnapshot.val() : {});
+                setProductsData(productsSnapshot.exists() ? productsSnapshot.val() : {});
+                setRopsData(ropsSnapshot.exists() ? ropsSnapshot.val() : {});
+
             } catch (err) {
                 console.error("Error fetching admin data:", err);
-                setError('Error al cargar datos.'); setAllStockData({});
+                setError('Error al cargar datos.');
+                setAllStockData({}); setStoresData({}); setProductsData({}); setRopsData({});
             } finally { setLoading(false); }
         };
         fetchData();
     }, [userData]);
 
-    const filteredData = useMemo(() => {
+    const monthlyFilteredEntries = useMemo(() => {
         const startOfMonth = new Date(selectedYear, selectedMonth, 1).getTime();
         const endOfMonth = new Date(selectedYear, selectedMonth + 1, 1).getTime();
-        if (!allStockData) return {};
-        const monthlyData = {};
+        const entries = [];
+        if (!allStockData) return entries;
         Object.entries(allStockData).forEach(([storeId, storeStock]) => {
-            const storeWithMonthlyEntries = {}; let storeHasMonthly = false;
             Object.entries(storeStock).forEach(([productId, productInfo]) => {
-                const monthlyEntries = {}; let productHasMonthly = false;
                 if (productInfo.entries) {
                     Object.entries(productInfo.entries).forEach(([entryId, entry]) => {
                         const entryTimestamp = Number(entry.timestamp);
                         if (!isNaN(entryTimestamp)) {
                             const entryDate = new Date(entryTimestamp);
                             if (entryDate.getFullYear() === selectedYear && entryDate.getMonth() === selectedMonth) {
-                                monthlyEntries[entryId] = { ...entry, entryId: entryId, productId: productId, storeId: storeId };
-                                productHasMonthly = true; storeHasMonthly = true;
+                                entries.push({ ...entry, entryId, productId, storeId });
                             }
                         }
                     });
                 }
-                if (productHasMonthly) storeWithMonthlyEntries[productId] = { ...productInfo, entries: monthlyEntries };
-            });
-            if (storeHasMonthly) monthlyData[storeId] = storeWithMonthlyEntries;
-        });
-        if (!searchTerm) return monthlyData;
-        const lowerSearchTerm = searchTerm.toLowerCase();
-        const finalFiltered = {};
-        Object.entries(monthlyData).forEach(([storeId, storeStock]) => {
-            const storeMatchesSearch = {}; let storeHasSearchResults = false;
-            Object.entries(storeStock).forEach(([productId, productInfo]) => {
-                const searchMatchingEntries = {}; let productHasSearchResults = false;
-                if (productInfo.entries) {
-                    Object.entries(productInfo.entries).forEach(([entryId, entry]) => {
-                        const entryProductName = entry.productName || '';
-                        const matches = productId.toLowerCase().includes(lowerSearchTerm) ||
-                                      entryProductName.toLowerCase().includes(lowerSearchTerm) ||
-                                      (entry.userEmail && entry.userEmail.toLowerCase().includes(lowerSearchTerm)) ||
-                                      (entry.barcodeUsed && entry.barcodeUsed.toLowerCase().includes(lowerSearchTerm)) ||
-                                      String(entry.quantity).includes(lowerSearchTerm) ||
-                                      String(entry.expiryMonth).padStart(2,'0').includes(lowerSearchTerm) ||
-                                      String(entry.expiryYear).includes(lowerSearchTerm) ||
-                                      formatTimestamp(entry.timestamp).toLowerCase().includes(lowerSearchTerm);
-                        if (matches) {
-                            searchMatchingEntries[entryId] = entry; productHasSearchResults = true; storeHasSearchResults = true;
-                        }
-                    });
-                }
-                if (productHasSearchResults) storeMatchesSearch[productId] = { ...productInfo, entries: searchMatchingEntries };
-            });
-            if (storeHasSearchResults) finalFiltered[storeId] = storeMatchesSearch;
-        });
-        return finalFiltered;
-    }, [allStockData, searchTerm, selectedMonth, selectedYear]);
-
-    const allVisibleEntries = useMemo(() => {
-        const entries = {};
-        if (!filteredData) return entries;
-        Object.values(filteredData).forEach(storeStock => {
-            Object.values(storeStock).forEach(productInfo => {
-                if (productInfo.entries) {
-                     Object.values(productInfo.entries).forEach(entry => {
-                         entries[entry.entryId] = entry;
-                     });
-                }
             });
         });
         return entries;
-    }, [filteredData]);
+    }, [allStockData, selectedMonth, selectedYear]);
 
-    const numVisible = Object.keys(allVisibleEntries).length;
-    const numSelected = Object.keys(selectedEntries).length;
-
-    const handleEntrySelectionChange = (entry) => {
-        setSelectedEntries(prev => {
-            const newSelected = { ...prev };
-            if (newSelected[entry.entryId]) delete newSelected[entry.entryId];
-            else newSelected[entry.entryId] = entry;
-            return newSelected;
+    const searchedEntries = useMemo(() => {
+        if (!searchTerm) return monthlyFilteredEntries;
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        return monthlyFilteredEntries.filter(entry => {
+            const entryProductName = entry.productName || '';
+            const mainProductName = productsData?.[entry.productId]?.name || entryProductName;
+            return entry.productId.toLowerCase().includes(lowerSearchTerm) ||
+                   mainProductName.toLowerCase().includes(lowerSearchTerm) ||
+                   (entry.userEmail && entry.userEmail.toLowerCase().includes(lowerSearchTerm)) ||
+                   (entry.barcodeUsed && entry.barcodeUsed.toLowerCase().includes(lowerSearchTerm)) ||
+                   String(entry.quantity).includes(lowerSearchTerm) ||
+                   `${String(entry.expiryMonth).padStart(2,'0')}/${entry.expiryYear}`.includes(lowerSearchTerm) ||
+                   formatTimestamp(entry.timestamp).toLowerCase().includes(lowerSearchTerm);
         });
-    };
+    }, [monthlyFilteredEntries, searchTerm, productsData]);
 
-    const handleSelectAllVisible = () => setSelectedEntries(allVisibleEntries);
-    const handleDeselectAll = () => setSelectedEntries({});
-
-    const prepareDataForExcel = (entriesToExport) => {
+    const consolidatedViewData = useMemo(() => {
         const dataByStore = {};
-        Object.values(entriesToExport).forEach(entry => {
-            const storeName = storesData[entry.storeId]?.name || entry.storeId;
-            if (!dataByStore[storeName]) dataByStore[storeName] = [];
-            dataByStore[storeName].push({
-                "Código Referencia": entry.productId,
-                "Nombre": entry.productName || 'N/A',
-                "Cantidad": entry.quantity,
-                "Fecha Vencimiento": `                      ${String(entry.expiryMonth).padStart(2, '0')}/${entry.expiryYear}`
-            });
+        searchedEntries.forEach(entry => {
+            const storeId = entry.storeId;
+            const consolidationKey = `${entry.productId}_${entry.expiryMonth}_${entry.expiryYear}`;
+            if (!dataByStore[storeId]) dataByStore[storeId] = {};
+            if (!dataByStore[storeId][consolidationKey]) {
+                dataByStore[storeId][consolidationKey] = {
+                    productId: entry.productId,
+                    productName: entry.productName || 'N/A',
+                    expiryMonth: entry.expiryMonth,
+                    expiryYear: entry.expiryYear,
+                    totalQuantity: 0
+                };
+            }
+            dataByStore[storeId][consolidationKey].totalQuantity += entry.quantity;
+        });
+        Object.keys(dataByStore).forEach(storeId => {
+             dataByStore[storeId] = Object.values(dataByStore[storeId]).sort((a,b) => {
+                const nameA = a.productName.toLowerCase(); const nameB = b.productName.toLowerCase();
+                 if (nameA < nameB) return -1; if (nameA > nameB) return 1;
+                 const dateA = new Date(a.expiryYear, a.expiryMonth - 1); const dateB = new Date(b.expiryYear, b.expiryMonth - 1);
+                 return dateA - dateB;
+             });
         });
         return dataByStore;
+    }, [searchedEntries]);
+
+
+    const prepareConsolidatedDataForStoreSheet = (storeEntries) => {
+        const storeConsolidated = {};
+        storeEntries.forEach(entry => {
+            const key = `${entry.productId}_${entry.expiryMonth}_${entry.expiryYear}`;
+            if (!storeConsolidated[key]) {
+                const productName = productsData?.[entry.productId]?.name || entry.productName || 'N/A';
+                storeConsolidated[key] = {
+                    productId: entry.productId, productName: productName,
+                    expiryMonth: entry.expiryMonth, expiryYear: entry.expiryYear, totalQuantity: 0
+                };
+            }
+            storeConsolidated[key].totalQuantity += entry.quantity;
+        });
+        return Object.values(storeConsolidated).map(item => ({
+            "Código Ref": item.productId,
+            "Nombre": item.productName,
+            "Cantidad": item.totalQuantity,
+            "Fecha Vencimiento": `${String(item.expiryMonth).padStart(2, '0')}/${item.expiryYear}`
+        })).sort((a, b) => a.Nombre.localeCompare(b.Nombre));
     };
 
-    const downloadExcel = (dataByStore, baseFileName) => {
-        if (Object.keys(dataByStore).length === 0) { alert("No hay datos para descargar."); return; }
+    const downloadExcelPerStore = (entriesToProcess, baseFileName) => {
+        if (entriesToProcess.length === 0) { alert("No hay datos visibles para descargar."); return; }
+        const dataByStoreId = {};
+        entriesToProcess.forEach(entry => {
+            const storeId = entry.storeId;
+            if (!dataByStoreId[storeId]) dataByStoreId[storeId] = [];
+            dataByStoreId[storeId].push(entry);
+        });
         try {
             const wb = XLSX.utils.book_new();
-            Object.entries(dataByStore).forEach(([storeName, sheetData]) => {
-                const ws = XLSX.utils.json_to_sheet(sheetData);
-
-                
-                const columnWidths = [
-                    { wch: 15 }, 
-                    { wch: 50 }, 
-                    { wch: 10 }, 
-                    { wch: 18 }  
-                ];
-                ws['!cols'] = columnWidths;
-                
-
-                XLSX.utils.book_append_sheet(wb, ws, storeName.substring(0, 31));
+            const sortedStoreIds = Object.keys(dataByStoreId).sort();
+            sortedStoreIds.forEach(storeId => {
+                const storeEntries = dataByStoreId[storeId];
+                const storeName = storesData[storeId]?.name || storeId;
+                const sheetDataFormatted = prepareConsolidatedDataForStoreSheet(storeEntries);
+                if (sheetDataFormatted.length > 0) {
+                    const ws = XLSX.utils.json_to_sheet(sheetDataFormatted);
+                    const columnWidths = [ { wch: 15 }, { wch: 60 }, { wch: 10 }, { wch: 18 } ]; ws['!cols'] = columnWidths;
+                    const range = XLSX.utils.decode_range(ws['!ref']);
+                    const qtyColIndex = 2; const expiryColIndex = 3;
+                    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                        let cellQty = ws[XLSX.utils.encode_cell({ r: R, c: qtyColIndex })];
+                        if (cellQty) { if (!cellQty.s) cellQty.s = {}; if (!cellQty.s.alignment) cellQty.s.alignment = {}; cellQty.s.alignment.horizontal = 'right'; }
+                        let cellExpiry = ws[XLSX.utils.encode_cell({ r: R, c: expiryColIndex })];
+                        if (cellExpiry) { if (!cellExpiry.s) cellExpiry.s = {}; if (!cellExpiry.s.alignment) cellExpiry.s.alignment = {}; cellExpiry.s.alignment.horizontal = 'right'; }
+                    }
+                    XLSX.utils.book_append_sheet(wb, ws, storeName.substring(0, 31));
+                }
             });
-            const monthNameUpper = monthNames[selectedMonth].toUpperCase();
-            const fileName = `${baseFileName}${monthNameUpper}-${selectedYear}.xlsx`;
+             if (wb.SheetNames.length === 0) { alert("No hay datos válidos para generar el Excel."); return; }
+             const monthNameUpper = monthNames[selectedMonth].toUpperCase();
+             const fileName = `${baseFileName}${monthNameUpper}-${selectedYear}.xlsx`;
+             XLSX.writeFile(wb, fileName);
+        } catch (exportError) { console.error("Error generating multi-sheet Excel:", exportError); alert("Error al generar el archivo Excel por local."); }
+    };
+
+     const downloadSingleSheetExcel = (data, sheetName, fileName, columnWidths) => {
+        if (!data || data.length === 0) { alert("No hay datos para generar el reporte."); return; }
+        try {
+            const wb = XLSX.utils.book_new(); const ws = XLSX.utils.json_to_sheet(data);
+            if (columnWidths) ws['!cols'] = columnWidths;
+            const range = XLSX.utils.decode_range(ws['!ref']); const headers = data[0] ? Object.keys(data[0]) : [];
+            const dateColIndex = headers.indexOf("Fecha de Vencimiento"); const qtyColIndex = headers.indexOf("Cantidad Total");
+            const ropColIndices = headers.map((h, i) => h.startsWith("ROP ") ? i : -1).filter(i => i !== -1);
+            if (dateColIndex > -1 || qtyColIndex > -1 || ropColIndices.length > 0) {
+                 for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                     let cell;
+                     if (dateColIndex > -1) { cell = ws[XLSX.utils.encode_cell({ r: R, c: dateColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }}
+                     if (qtyColIndex > -1) { cell = ws[XLSX.utils.encode_cell({ r: R, c: qtyColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }}
+                     ropColIndices.forEach(ropColIndex => { cell = ws[XLSX.utils.encode_cell({ r: R, c: ropColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }});
+                 }
+             }
+            XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
             XLSX.writeFile(wb, fileName);
-        } catch (exportError) {
-             console.error("Error generating Excel file:", exportError);
-             alert("Error al generar el archivo Excel.");
-        }
+        } catch (exportError) { console.error("Error generating single sheet Excel:", exportError); alert("Error al generar el archivo Excel."); }
     };
 
-    const handleDownloadAll = () => {
-        const dataToExport = prepareDataForExcel(allVisibleEntries);
-        downloadExcel(dataToExport, `vencimientos`);
-    };
+    const handleDownloadVisibleByStore = () => downloadExcelPerStore(searchedEntries, `Vencimientos_`, true); // true consolida
 
-    const handleDownloadSelected = () => {
-        if (numSelected === 0) { alert("No hay registros seleccionados."); return; }
-        const dataToExport = prepareDataForExcel(selectedEntries);
-        downloadExcel(dataToExport, `vencimientos`);
+    const handleDownloadConsolidatedTotalAction = () => {
+        if (searchedEntries.length === 0) { alert("No hay registros visibles para generar totales."); return; }
+        if (!ropsData || !productsData) { alert("Datos ROP o de Productos no disponibles."); return; }
+        const globalTotals = {};
+        searchedEntries.forEach(entry => {
+            const consolidationKey = `${entry.productId}_${entry.expiryMonth}_${entry.expiryYear}`;
+            if (!globalTotals[consolidationKey]) {
+                const productName = productsData?.[entry.productId]?.name || entry.productName || 'N/A';
+                globalTotals[consolidationKey] = { productId: entry.productId, productName: productName, expiryMonth: entry.expiryMonth, expiryYear: entry.expiryYear, totalQuantity: 0 };
+            }
+            globalTotals[consolidationKey].totalQuantity += entry.quantity;
+        });
+        const relevantStoreIdsWithRop = new Set();
+        Object.values(globalTotals).forEach(item => {
+            const productId = item.productId;
+            if (ropsData) { Object.keys(ropsData).forEach(storeId => { if (ropsData[storeId]?.[productId] !== undefined) relevantStoreIdsWithRop.add(storeId); }); }
+        });
+        const sortedRelevantStoreIds = Array.from(relevantStoreIdsWithRop).sort();
+        const excelData = Object.values(globalTotals).map(item => {
+            const baseRow = { "Identificador de Producto": item.productId, "Nombre Producto": item.productName, "Fecha de Vencimiento": `${String(item.expiryMonth).padStart(2, '0')}/${item.expiryYear}`, "Cantidad Total": item.totalQuantity };
+            const productIdToLookup = item.productId;
+            sortedRelevantStoreIds.forEach(storeId => {
+                 const headerName = `ROP ${storesData[storeId]?.name || storeId}`;
+                 const ropPercent = ropsData?.[storeId]?.[productIdToLookup];
+                 if (ropPercent && typeof ropPercent === 'number' && ropPercent > 0) baseRow[headerName] = Math.floor(item.totalQuantity * ropPercent); // ahora estoy redondeading hacia abajo
+                 else baseRow[headerName] = '-';
+            });
+            return baseRow;
+        }).sort((a, b) => {
+             if (a["Identificador de Producto"] < b["Identificador de Producto"]) return -1; if (a["Identificador de Producto"] > b["Identificador de Producto"]) return 1;
+             const dateA = new Date(parseInt(a["Fecha de Vencimiento"].split('/')[1]), parseInt(a["Fecha de Vencimiento"].split('/')[0]) - 1);
+             const dateB = new Date(parseInt(b["Fecha de Vencimiento"].split('/')[1]), parseInt(b["Fecha de Vencimiento"].split('/')[0]) - 1);
+             return dateA - dateB;
+         });
+        const monthStr = String(selectedMonth + 1).padStart(2, '0');
+        const fileName = `totalesROP_${monthStr}-${selectedYear}.xlsx`;
+        const sheetName = `totalesROP_${monthStr}-${selectedYear}`;
+        const columnWidths = [ { wch: 20 }, { wch: 60 }, { wch: 18 }, { wch: 15 }, ...sortedRelevantStoreIds.map(() => ({ wch: 15 })) ];
+        downloadSingleSheetExcel(excelData, sheetName, fileName, columnWidths);
     };
 
     const handleClearSearch = () => {
@@ -204,10 +265,13 @@ function AdminPage() {
         if (searchInputRef.current) searchInputRef.current.focus();
     };
 
+    const handleMonthChange = (e) => setSelectedMonth(parseInt(e.target.value, 10));
+    const handleYearChange = (e) => setSelectedYear(parseInt(e.target.value, 10));
+
     if (loading) return <div className="page-container" style={{marginTop: '20px'}}><p>Cargando datos...</p></div>;
     if (error) return <div className="page-container" style={{marginTop: '20px'}}><p className="error-message">{error}</p>{(userData?.role === 'admin' || userData?.role === 'superadmin') && (<div className="button-group" style={{justifyContent: 'center'}}><button className='secondary' onClick={()=>navigate('/home')}>Volver</button></div>)}</div>;
 
-    const hasResults = filteredData && numVisible > 0;
+    const hasResultsToDisplay = consolidatedViewData && Object.keys(consolidatedViewData).length > 0;
 
     return (
         <div className="page-container" style={{marginTop: '20px', maxWidth: '1050px'}}>
@@ -217,10 +281,10 @@ function AdminPage() {
 
             <div style={{ marginBottom: '10px', marginTop:'15px', textAlign: 'right' }}>
                  <span style={{fontWeight: 'bold', fontSize: '0.9em', marginRight:'5px', color: '#555'}}>Ver Mes:</span>
-                 <select id="month-filter" value={selectedMonth} onChange={(e) => { setSelectedMonth(parseInt(e.target.value, 10)); handleDeselectAll(); }} className="compact-select">
+                 <select id="month-filter" value={selectedMonth} onChange={handleMonthChange} className="compact-select">
                       {monthNames.map((name, index) => ( <option key={index} value={index}>{name}</option> ))}
                  </select>
-                 <select id="year-filter" value={selectedYear} onChange={(e) => { setSelectedYear(parseInt(e.target.value, 10)); handleDeselectAll(); }} className="compact-select">
+                 <select id="year-filter" value={selectedYear} onChange={handleYearChange} className="compact-select">
                       {yearOptions.map(year => ( <option key={year} value={year}>{year}</option> ))}
                  </select>
             </div>
@@ -241,61 +305,50 @@ function AdminPage() {
                  )}
             </div>
 
-             {(numVisible > 0 || numSelected > 0) && (
-                <div className="button-group" style={{ justifyContent: 'space-between', padding: '10px 0', borderTop: '1px solid #eee', borderBottom: '1px solid #eee', marginBottom: '20px', marginTop:'5px' }}>
-                    <div>
-                        <button onClick={handleSelectAllVisible} className='secondary' style={{marginRight: '10px', padding: '5px 10px', fontSize: '0.9em', marginTop: 0}} disabled={numVisible === 0}>Seleccionar Todos ({numVisible})</button>
-                        <button onClick={handleDeselectAll} className='secondary' style={{padding: '5px 10px', fontSize: '0.9em', marginTop: 0}} disabled={numSelected === 0}>Deseleccionar Todos ({numSelected})</button>
-                    </div>
-                    <div>
-                        <button onClick={handleDownloadAll} style={{marginRight: '10px', padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#17a2b8'}} disabled={numVisible === 0}>Descargar Mes Completo</button>
-                        <button onClick={handleDownloadSelected} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0}} disabled={numSelected === 0}>Descargar Selección</button>
+             {searchedEntries.length > 0 && (
+                <div className="button-group" style={{ justifyContent: 'flex-end', padding: '10px 0', borderTop: '1px solid #eee', borderBottom: '1px solid #eee', marginBottom: '20px', marginTop:'5px' }}>
+                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                        <button onClick={handleDownloadVisibleByStore} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#ffc107', color: '#212529'}} disabled={searchedEntries.length === 0}>Descargar Vencimiento Mes</button>
+                        <button onClick={handleDownloadConsolidatedTotalAction} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#007bff'}} disabled={searchedEntries.length === 0}>Descargar Totales con ROP</button>
                     </div>
                 </div>
              )}
 
-            <hr style={{marginTop: 0, borderTop: 'none'}}/>
+            <hr style={{marginTop: 0, borderTop: 'none', marginBottom: '20px'}}/>
 
-            {!loading && !error && !hasResults && searchTerm && <p>No se encontraron registros en {displayMonthName} {selectedYear} que coincidan con "{searchTerm}".</p>}
-            {!loading && !error && !hasResults && !searchTerm && <p>No hay entradas de stock registradas en {displayMonthName} {selectedYear}.</p>}
+            {!loading && !error && !hasResultsToDisplay && searchTerm && <p>No se encontraron registros en {displayMonthName} {selectedYear} que coincidan con "{searchTerm}".</p>}
+            {!loading && !error && !hasResultsToDisplay && !searchTerm && <p>No hay entradas de stock registradas en {displayMonthName} {selectedYear}.</p>}
 
             <div key={listKey}>
-                {hasResults &&
-                    Object.entries(filteredData).map(([storeId, storeStock]) => (
+                {hasResultsToDisplay &&
+                    Object.entries(consolidatedViewData).map(([storeId, storeConsolidatedItems]) => (
                     <details key={storeId} style={{ marginBottom: '15px', borderBottom: '1px solid #eee' }}>
                         <summary style={{ cursor: 'pointer', padding: '10px 0', fontSize: '1.3em', fontWeight: 'bold' }}>
                          {storesData[storeId]?.name || storeId}
                         </summary>
-                        <div style={{ paddingLeft: '5px', paddingTop: '10px' }}>
-                        {storeStock && Object.keys(storeStock).length > 0 ? (
-                            Object.entries(storeStock).map(([productId, productInfo]) => (
-                            <div key={productId} style={{ marginBottom: '15px' }}>
-                                {productInfo.entries && Object.keys(productInfo.entries).length > 0 ? (
-                                <ul style={{ listStyle: 'none', paddingLeft: 0, margin: 0 }}>
-                                    {Object.entries(productInfo.entries).map(([entryId, entry]) => (
-                                    <li key={entryId} style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px dotted #ccc', padding: '8px 0', fontSize: '0.9em', lineHeight: '1.5'}}>
-                                        <input
-                                            type="checkbox"
-                                            checked={!!selectedEntries[entryId]}
-                                            onChange={() => handleEntrySelectionChange(entry)}
-                                            style={{flexShrink: 0}}
-                                            aria-label={`Seleccionar entrada para ${entry.productName || productId}`}
-                                        />
-                                        <div style={{flexGrow: 1}}>
-                                            <strong style={{ display: 'block', marginBottom: '2px', color: '#1a5276', fontSize: 20 }}>
-                                                Ref: {productId} - {entry.productName || `ID: ${productId}`}
-                                            </strong>
-                                            <span style={{ color: '#555', fontSize: 20 }}>
-                                                Cant: {entry.quantity} - Vence: {String(entry.expiryMonth).padStart(2, '0')}/{entry.expiryYear}
-                                            </span>
-                                        </div>
-                                    </li>
-                                    ))}
-                                </ul>
-                                ) : ( <p style={{ fontStyle: 'italic', color: '#777', fontSize: '0.9em' }}>Sin entradas.</p> )}
-                            </div>
-                            ))
-                        ) : ( <p style={{ fontStyle: 'italic', color: '#777' }}>Sin productos.</p> )}
+                        <div style={{ paddingLeft: '5px', paddingTop: '10px', overflowX:'auto' }}>
+                            {storeConsolidatedItems.length > 0 ? (
+                                <table style={{width: '100%', borderCollapse: 'collapse', minWidth:'500px'}}>
+                                    <thead>
+                                        <tr style={{textAlign: 'left', borderBottom: '1px solid #ccc'}}>
+                                            <th style={{padding: '5px 8px'}}>Código Ref</th>
+                                            <th style={{padding: '5px 8px'}}>Nombre Producto</th>
+                                            <th style={{padding: '5px 8px', textAlign:'right'}}>Cant Total</th>
+                                            <th style={{padding: '5px 8px', textAlign:'right'}}>Vencimiento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {storeConsolidatedItems.map(item => (
+                                            <tr key={item.productId + '_' + item.expiryYear + '_' + item.expiryMonth} style={{borderBottom: '1px dotted #eee'}}>
+                                                <td style={{padding: '6px 8px'}}>{item.productId}</td>
+                                                <td style={{padding: '6px 8px'}}>{item.productName}</td>
+                                                <td style={{padding: '6px 8px', textAlign:'right', fontWeight:'bold'}}>{item.totalQuantity}</td>
+                                                <td style={{padding: '6px 8px', textAlign:'right'}}>{String(item.expiryMonth).padStart(2, '0')}/{item.expiryYear}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : ( <p style={{ fontStyle: 'italic', color: '#777' }}>Sin productos con entradas este mes/año.</p> )}
                         </div>
                     </details>
                     ))
