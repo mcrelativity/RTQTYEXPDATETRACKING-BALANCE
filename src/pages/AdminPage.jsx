@@ -309,7 +309,7 @@ function AdminPage() {
              {searchedEntries.length > 0 && (
                 <div className="button-group" style={{ justifyContent: 'flex-end', padding: '10px 0', borderTop: '1px solid #eee', borderBottom: '1px solid #eee', marginBottom: '20px', marginTop:'5px' }}>
                     <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                        <button onClick={handleDownloadVisibleByStore} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#ffc107', color: '#212529'}} disabled={searchedEntries.length === 0}>Descargar Vencimiento Mes</button>
+                        <button onClick={handleDownloadVisibleByStore} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#ffc107', color: '#212529'}} disabled={searchedEntries.length === 0}>Descargar Vencimientos Mes</button>
                         <button onClick={handleDownloadConsolidatedTotalAction} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#007bff'}} disabled={searchedEntries.length === 0}>Descargar Totales con ROP</button>
                     </div>
                 </div>
