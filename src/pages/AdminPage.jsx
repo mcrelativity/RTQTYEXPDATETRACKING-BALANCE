@@ -154,8 +154,9 @@ function AdminPage() {
         return Object.values(storeConsolidated).map(item => ({
             "Código Ref": item.productId,
             "Nombre": item.productName,
-            "Cantidad": item.totalQuantity,
-            "Fecha Vencimiento": `${String(item.expiryMonth).padStart(2, '0')}/${item.expiryYear}`
+            "Fecha Vencimiento": `${String(item.expiryMonth).padStart(2, '0')}/${item.expiryYear}`,
+            "Cantidad": item.totalQuantity
+            
         })).sort((a, b) => a.Nombre.localeCompare(b.Nombre));
     };
 
@@ -176,7 +177,7 @@ function AdminPage() {
                 const sheetDataFormatted = prepareConsolidatedDataForStoreSheet(storeEntries);
                 if (sheetDataFormatted.length > 0) {
                     const ws = XLSX.utils.json_to_sheet(sheetDataFormatted);
-                    const columnWidths = [ { wch: 15 }, { wch: 60 }, { wch: 10 }, { wch: 18 } ]; ws['!cols'] = columnWidths;
+                    const columnWidths = [ { wch: 15 }, { wch: 60 }, { wch: 18 }, { wch: 10 } ]; ws['!cols'] = columnWidths;
                     const range = XLSX.utils.decode_range(ws['!ref']);
                     const qtyColIndex = 2; const expiryColIndex = 3;
                     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
@@ -216,7 +217,7 @@ function AdminPage() {
         } catch (exportError) { console.error("Error generating single sheet Excel:", exportError); alert("Error al generar el archivo Excel."); }
     };
 
-    const handleDownloadVisibleByStore = () => downloadExcelPerStore(searchedEntries, `Vencimientos_`, true); // true consolida
+    const handleDownloadVisibleByStore = () => downloadExcelPerStore(searchedEntries, `Vencimientos_`, true); 
 
     const handleDownloadConsolidatedTotalAction = () => {
         if (searchedEntries.length === 0) { alert("No hay registros visibles para generar totales."); return; }
@@ -252,10 +253,10 @@ function AdminPage() {
              const dateB = new Date(parseInt(b["Fecha de Vencimiento"].split('/')[1]), parseInt(b["Fecha de Vencimiento"].split('/')[0]) - 1);
              return dateA - dateB;
          });
-        const monthStr = String(selectedMonth + 1).padStart(2, '0');
-        const fileName = `totalesROP_${monthStr}-${selectedYear}.xlsx`;
-        const sheetName = `totalesROP_${monthStr}-${selectedYear}`;
-        const columnWidths = [ { wch: 20 }, { wch: 60 }, { wch: 18 }, { wch: 15 }, ...sortedRelevantStoreIds.map(() => ({ wch: 15 })) ];
+        const monthNameUpper = monthNames[selectedMonth].toUpperCase();
+        const fileName = `totalesROP_${monthNameUpper}-${selectedYear}.xlsx`;
+        const sheetName = `totalesROP_${monthNameUpper}-${selectedYear}`;
+        const columnWidths = [ { wch: 22 }, { wch: 60 }, { wch: 19 }, { wch: 15 }, ...sortedRelevantStoreIds.map(() => ({ wch: 15 })) ];
         downloadSingleSheetExcel(excelData, sheetName, fileName, columnWidths);
     };
 
