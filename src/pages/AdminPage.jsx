@@ -71,8 +71,6 @@ function AdminPage() {
     }, [userData]);
 
     const monthlyFilteredEntries = useMemo(() => {
-        const startOfMonth = new Date(selectedYear, selectedMonth, 1).getTime();
-        const endOfMonth = new Date(selectedYear, selectedMonth + 1, 1).getTime();
         const entries = [];
         if (!allStockData) return entries;
         Object.entries(allStockData).forEach(([storeId, storeStock]) => {
@@ -118,7 +116,7 @@ function AdminPage() {
             if (!dataByStore[storeId][consolidationKey]) {
                 dataByStore[storeId][consolidationKey] = {
                     productId: entry.productId,
-                    productName: entry.productName || 'N/A',
+                    productName: productsData?.[entry.productId]?.name || entry.productName || 'N/A',
                     expiryMonth: entry.expiryMonth,
                     expiryYear: entry.expiryYear,
                     totalQuantity: 0
@@ -135,7 +133,7 @@ function AdminPage() {
              });
         });
         return dataByStore;
-    }, [searchedEntries]);
+    }, [searchedEntries, productsData]);
 
 
     const prepareConsolidatedDataForStoreSheet = (storeEntries) => {
@@ -156,7 +154,6 @@ function AdminPage() {
             "Nombre": item.productName,
             "Fecha Vencimiento": `${String(item.expiryMonth).padStart(2, '0')}/${item.expiryYear}`,
             "Cantidad": item.totalQuantity
-            
         })).sort((a, b) => a.Nombre.localeCompare(b.Nombre));
     };
 
@@ -179,12 +176,22 @@ function AdminPage() {
                     const ws = XLSX.utils.json_to_sheet(sheetDataFormatted);
                     const columnWidths = [ { wch: 15 }, { wch: 60 }, { wch: 18 }, { wch: 10 } ]; ws['!cols'] = columnWidths;
                     const range = XLSX.utils.decode_range(ws['!ref']);
-                    const qtyColIndex = 2; const expiryColIndex = 3;
+                    const qtyColIndex = 3; // Corregido: El índice de la columna "Cantidad" es 3 (D)
+                    const expiryColIndex = 2; // Corregido: El índice de "Fecha Vencimiento" es 2 (C)
+
                     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
                         let cellQty = ws[XLSX.utils.encode_cell({ r: R, c: qtyColIndex })];
-                        if (cellQty) { if (!cellQty.s) cellQty.s = {}; if (!cellQty.s.alignment) cellQty.s.alignment = {}; cellQty.s.alignment.horizontal = 'right'; }
+                        if (cellQty) {
+                            if (!cellQty.s) cellQty.s = {};
+                            if (!cellQty.s.alignment) cellQty.s.alignment = {};
+                            cellQty.s.alignment.horizontal = 'right';
+                        }
                         let cellExpiry = ws[XLSX.utils.encode_cell({ r: R, c: expiryColIndex })];
-                        if (cellExpiry) { if (!cellExpiry.s) cellExpiry.s = {}; if (!cellExpiry.s.alignment) cellExpiry.s.alignment = {}; cellExpiry.s.alignment.horizontal = 'right'; }
+                         if (cellExpiry) {
+                            if (!cellExpiry.s) cellExpiry.s = {};
+                            if (!cellExpiry.s.alignment) cellExpiry.s.alignment = {};
+                            cellExpiry.s.alignment.horizontal = 'right';
+                        }
                     }
                     XLSX.utils.book_append_sheet(wb, ws, storeName.substring(0, 31));
                 }
@@ -197,66 +204,104 @@ function AdminPage() {
     };
 
      const downloadSingleSheetExcel = (data, sheetName, fileName, columnWidths) => {
-        if (!data || data.length === 0) { alert("No hay datos para generar el reporte."); return; }
-        try {
-            const wb = XLSX.utils.book_new(); const ws = XLSX.utils.json_to_sheet(data);
-            if (columnWidths) ws['!cols'] = columnWidths;
-            const range = XLSX.utils.decode_range(ws['!ref']); const headers = data[0] ? Object.keys(data[0]) : [];
-            const dateColIndex = headers.indexOf("Fecha de Vencimiento"); const qtyColIndex = headers.indexOf("Cantidad Total");
-            const ropColIndices = headers.map((h, i) => h.startsWith("ROP ") ? i : -1).filter(i => i !== -1);
-            if (dateColIndex > -1 || qtyColIndex > -1 || ropColIndices.length > 0) {
-                 for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                     let cell;
-                     if (dateColIndex > -1) { cell = ws[XLSX.utils.encode_cell({ r: R, c: dateColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }}
-                     if (qtyColIndex > -1) { cell = ws[XLSX.utils.encode_cell({ r: R, c: qtyColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }}
-                     ropColIndices.forEach(ropColIndex => { cell = ws[XLSX.utils.encode_cell({ r: R, c: ropColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }});
-                 }
-             }
-            XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
-            XLSX.writeFile(wb, fileName);
-        } catch (exportError) { console.error("Error generating single sheet Excel:", exportError); alert("Error al generar el archivo Excel."); }
-    };
+         if (!data || data.length === 0) { alert("No hay datos para generar el reporte."); return; }
+         try {
+             const wb = XLSX.utils.book_new(); const ws = XLSX.utils.json_to_sheet(data);
+             if (columnWidths) ws['!cols'] = columnWidths;
+             const range = XLSX.utils.decode_range(ws['!ref']); const headers = data[0] ? Object.keys(data[0]) : [];
+             const dateColIndex = headers.indexOf("Fecha de Vencimiento");
+             const qtyColIndex = headers.indexOf("Cantidad Total");
+             const disponibleColIndex = headers.indexOf("Disponible"); // Para alinear texto si es necesario
+             const ropColIndices = headers.map((h, i) => h.startsWith("ROP ") ? i : -1).filter(i => i !== -1);
 
-    const handleDownloadVisibleByStore = () => downloadExcelPerStore(searchedEntries, `Vencimientos_`, true); 
+             if (dateColIndex > -1 || qtyColIndex > -1 || ropColIndices.length > 0 || disponibleColIndex > -1) {
+                  for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                       let cell;
+                       if (dateColIndex > -1) { cell = ws[XLSX.utils.encode_cell({ r: R, c: dateColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }}
+                       if (qtyColIndex > -1) { cell = ws[XLSX.utils.encode_cell({ r: R, c: qtyColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }}
+                       // if (disponibleColIndex > -1) { cell = ws[XLSX.utils.encode_cell({ r: R, c: disponibleColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'left'; }} // Ejemplo, usualmente es left por defecto
+                       ropColIndices.forEach(ropColIndex => { cell = ws[XLSX.utils.encode_cell({ r: R, c: ropColIndex })]; if (cell) { if (!cell.s) cell.s = {}; if (!cell.s.alignment) cell.s.alignment = {}; cell.s.alignment.horizontal = 'right'; }});
+                 }
+               }
+             XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+             XLSX.writeFile(wb, fileName);
+         } catch (exportError) { console.error("Error generating single sheet Excel:", exportError); alert("Error al generar el archivo Excel."); }
+     };
+
+    const handleDownloadVisibleByStore = () => downloadExcelPerStore(searchedEntries, `Vencimientos_`);
 
     const handleDownloadConsolidatedTotalAction = () => {
         if (searchedEntries.length === 0) { alert("No hay registros visibles para generar totales."); return; }
-        if (!ropsData || !productsData) { alert("Datos ROP o de Productos no disponibles."); return; }
+        if (!ropsData || !productsData || !storesData) { alert("Datos ROP, de Productos o de Tiendas no disponibles."); return; }
+
         const globalTotals = {};
         searchedEntries.forEach(entry => {
             const consolidationKey = `${entry.productId}_${entry.expiryMonth}_${entry.expiryYear}`;
             if (!globalTotals[consolidationKey]) {
                 const productName = productsData?.[entry.productId]?.name || entry.productName || 'N/A';
-                globalTotals[consolidationKey] = { productId: entry.productId, productName: productName, expiryMonth: entry.expiryMonth, expiryYear: entry.expiryYear, totalQuantity: 0 };
+                globalTotals[consolidationKey] = {
+                    productId: entry.productId,
+                    productName: productName,
+                    expiryMonth: entry.expiryMonth,
+                    expiryYear: entry.expiryYear,
+                    totalQuantity: 0,
+                    quantitiesByStore: {}
+                };
             }
             globalTotals[consolidationKey].totalQuantity += entry.quantity;
+            const currentStoreQuantity = globalTotals[consolidationKey].quantitiesByStore[entry.storeId] || 0;
+            globalTotals[consolidationKey].quantitiesByStore[entry.storeId] = currentStoreQuantity + entry.quantity;
         });
+
         const relevantStoreIdsWithRop = new Set();
         Object.values(globalTotals).forEach(item => {
             const productId = item.productId;
             if (ropsData) { Object.keys(ropsData).forEach(storeId => { if (ropsData[storeId]?.[productId] !== undefined) relevantStoreIdsWithRop.add(storeId); }); }
         });
         const sortedRelevantStoreIds = Array.from(relevantStoreIdsWithRop).sort();
+
         const excelData = Object.values(globalTotals).map(item => {
-            const baseRow = { "Identificador de Producto": item.productId, "Nombre Producto": item.productName, "Fecha de Vencimiento": `${String(item.expiryMonth).padStart(2, '0')}/${item.expiryYear}`, "Cantidad Total": item.totalQuantity };
+            const availableInStoresDetails = Object.entries(item.quantitiesByStore)
+                .map(([storeId, qty]) => `${storesData[storeId]?.name || storeId}: ${qty} un`)
+                .sort()
+                .join(', ');
+
+            const baseRow = {
+                "Cod Ref": item.productId,
+                "Nombre Producto": item.productName,
+                "Fecha de Vencimiento": `${String(item.expiryMonth).padStart(2, '0')}/${item.expiryYear}`,
+                "Cantidad Total": item.totalQuantity,
+                "Disponible": availableInStoresDetails
+            };
             const productIdToLookup = item.productId;
             sortedRelevantStoreIds.forEach(storeId => {
-                 const headerName = `ROP ${storesData[storeId]?.name || storeId}`;
-                 const ropPercent = ropsData?.[storeId]?.[productIdToLookup];
-                 if (ropPercent && typeof ropPercent === 'number' && ropPercent > 0) baseRow[headerName] = Math.floor(item.totalQuantity * ropPercent); // ahora estoy redondeading hacia abajo
-                 else baseRow[headerName] = '-';
+                const headerName = `ROP ${storesData[storeId]?.name || storeId}`;
+                const ropPercent = ropsData?.[storeId]?.[productIdToLookup];
+                if (ropPercent && typeof ropPercent === 'number' && ropPercent > 0) baseRow[headerName] = Math.floor(item.totalQuantity * ropPercent);
+                else baseRow[headerName] = '-';
             });
             return baseRow;
         }).sort((a, b) => {
-             if (a["Identificador de Producto"] < b["Identificador de Producto"]) return -1; if (a["Identificador de Producto"] > b["Identificador de Producto"]) return 1;
-             const dateA = new Date(parseInt(a["Fecha de Vencimiento"].split('/')[1]), parseInt(a["Fecha de Vencimiento"].split('/')[0]) - 1);
-             const dateB = new Date(parseInt(b["Fecha de Vencimiento"].split('/')[1]), parseInt(b["Fecha de Vencimiento"].split('/')[0]) - 1);
-             return dateA - dateB;
-         });
+            if (a["Cod Ref"] < b["Cod Ref"]) return -1;
+            if (a["Cod Ref"] > b["Cod Ref"]) return 1;
+            const dateA = new Date(parseInt(a["Fecha de Vencimiento"].split('/')[1]), parseInt(a["Fecha de Vencimiento"].split('/')[0]) - 1);
+            const dateB = new Date(parseInt(b["Fecha de Vencimiento"].split('/')[1]), parseInt(b["Fecha de Vencimiento"].split('/')[0]) - 1);
+            return dateA - dateB;
+        });
+
         const monthNameUpper = monthNames[selectedMonth].toUpperCase();
         const fileName = `totalesROP_${monthNameUpper}-${selectedYear}.xlsx`;
         const sheetName = `totalesROP_${monthNameUpper}-${selectedYear}`;
-        const columnWidths = [ { wch: 22 }, { wch: 60 }, { wch: 19 }, { wch: 15 }, ...sortedRelevantStoreIds.map(() => ({ wch: 15 })) ];
+
+        const columnWidths = [
+            { wch: 22 },
+            { wch: 60 },
+            { wch: 19 },
+            { wch: 15 },
+            { wch: 80 }, 
+            ...sortedRelevantStoreIds.map(() => ({ wch: 15 }))
+        ];
+
         downloadSingleSheetExcel(excelData, sheetName, fileName, columnWidths);
     };
 
@@ -306,14 +351,14 @@ function AdminPage() {
                  )}
             </div>
 
-             {searchedEntries.length > 0 && (
-                <div className="button-group" style={{ justifyContent: 'flex-end', padding: '10px 0', borderTop: '1px solid #eee', borderBottom: '1px solid #eee', marginBottom: '20px', marginTop:'5px' }}>
-                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                        <button onClick={handleDownloadVisibleByStore} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#ffc107', color: '#212529'}} disabled={searchedEntries.length === 0}>Descargar Vencimientos Mes</button>
-                        <button onClick={handleDownloadConsolidatedTotalAction} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#007bff'}} disabled={searchedEntries.length === 0}>Descargar Totales con ROP</button>
-                    </div>
-                </div>
-             )}
+              {searchedEntries.length > 0 && (
+                  <div className="button-group" style={{ justifyContent: 'flex-end', padding: '10px 0', borderTop: '1px solid #eee', borderBottom: '1px solid #eee', marginBottom: '20px', marginTop:'5px' }}>
+                      <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                          <button onClick={handleDownloadVisibleByStore} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#ffc107', color: '#212529'}} disabled={searchedEntries.length === 0}>Descargar Vencimientos Mes</button>
+                          <button onClick={handleDownloadConsolidatedTotalAction} style={{padding: '6px 12px', fontSize: '0.9em', marginTop: 0, background: '#007bff'}} disabled={searchedEntries.length === 0}>Descargar Totales con ROP</button>
+                      </div>
+                  </div>
+              )}
 
             <hr style={{marginTop: 0, borderTop: 'none', marginBottom: '20px'}}/>
 
@@ -323,7 +368,7 @@ function AdminPage() {
             <div key={listKey}>
                 {hasResultsToDisplay &&
                     Object.entries(consolidatedViewData).map(([storeId, storeConsolidatedItems]) => (
-                    <details key={storeId} style={{ marginBottom: '15px', borderBottom: '1px solid #eee' }}>
+                    <details key={storeId} open={Object.keys(consolidatedViewData).length === 1 || searchTerm !== ''} style={{ marginBottom: '15px', borderBottom: '1px solid #eee' }}>
                         <summary style={{ cursor: 'pointer', padding: '10px 0', fontSize: '1.3em', fontWeight: 'bold' }}>
                          {storesData[storeId]?.name || storeId}
                         </summary>
