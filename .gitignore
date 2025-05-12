@@ -1,4 +1,4 @@
-# Logs
+
 logs
 *.log
 npm-debug.log*
@@ -7,15 +7,39 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
 
-# Editor directories and files
+.firebase/
+firebase-debug.log*
+
+
+node_modules/
+
+
+dist/
+dist-ssr/ # Si usas Server-Side Rendering con Vite
+
+
+coverage/
+
+
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.*.local
+
+
+!.env.example
+!.env.development
+!.env.production
+
+
 .vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -24,7 +48,15 @@ dist-ssr
 *.sw?
 
 
-# Archivos de Variables de Entorno (¡Contienen secretos!)
-.env
-.env.*
-!.env.example
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+
+*.local
+
