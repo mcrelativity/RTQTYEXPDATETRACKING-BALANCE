@@ -10,6 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.1.0",
+    "@mui/material": "^7.1.0",
+    "@tailwindcss/vite": "^4.1.6",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "react": "^19.0.0",
@@ -18,13 +23,30 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@tailwindcss/postcss": "^4.1.6",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.22.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.6",
     "vite": "^6.3.1"
-  }
+  },
+  "description": "Aplicación web interna desarrollada con React y Firebase para el seguimiento de ingresos de stock y fechas de vencimiento de productos farmacéuticos en múltiples locales. Permite buscar productos por código de barras, registrar nuevas entradas de stock con cantidad y vencimiento, visualizar el inventario registrado y además exportar a Excel información necesaria. Incluye gestión de usuarios por roles (user, admin y superadmin) y asignación a locales específicos.",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcrelativity/rtqtyandexpdttracking.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mcrelativity/rtqtyandexpdttracking/issues"
+  },
+  "homepage": "https://github.com/mcrelativity/rtqtyandexpdttracking#readme"
 }

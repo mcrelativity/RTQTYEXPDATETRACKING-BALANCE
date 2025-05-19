@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, get, update } from 'firebase/database';
 import { database } from '../../firebase/firebaseConfig';
-// Podrías importar funciones de Auth para reset pass, etc.
+
 // import { auth, sendPasswordResetEmail } from '../../firebase/firebaseConfig';
 
 function UserEditPage() {
-    const { userId } = useParams(); // Obtener el UID de la URL
+    const { userId } = useParams();
     const navigate = useNavigate();
 
-    const [userData, setUserData] = useState(null); // Datos actuales del usuario
+    const [userData, setUserData] = useState(null); 
     const [role, setRole] = useState('');
     const [storeId, setStoreId] = useState('');
     const [stores, setStores] = useState([]);
