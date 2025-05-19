@@ -12,8 +12,8 @@ lerna-debug.log*
 firebase-debug.log*
 
 
-.fantasia/
-.fantasia-debug.log*
+fantasia/
+fantasia-debug.log*
 
 node_modules/
 
