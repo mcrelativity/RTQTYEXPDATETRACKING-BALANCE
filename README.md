@@ -37,7 +37,7 @@ Aplicación web interna integral desarrollada con React y Firebase. Originalment
 
 ## Tech Stack 💻
 
-* **Frontend:** React (v18+) con Vite, JavaScript (ES6+), CSS3
+* **Frontend:** React (v18+) con Vite, JavaScript (ES6+), CSS3, Node.js
 * **Backend & Database:** Firebase
     * Firebase Authentication (Email/Password)
     * Firebase Realtime Database
