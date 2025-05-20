@@ -38,8 +38,8 @@ Comprehensive internal web application developed with React and Firebase. Origin
 * Consistent main layout with user/store information and logout button.
 
 ## Tech Stack 💻
-* **Frontend:** React (v18+) with Vite, JavaScript (ES6+), CSS3, Node.js
-* **Backend & Database:** Firebase
+* **Frontend:** React (v18+) with Vite, JavaScript (ES6+), CSS3
+* **Backend & Database:** Firebase, Node.js
     * Firebase Authentication (Email/Password)
     * Firebase Realtime Database
 * **Routing:** React Router DOM (v6)
