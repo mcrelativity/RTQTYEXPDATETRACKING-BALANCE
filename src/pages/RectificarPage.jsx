@@ -322,7 +322,7 @@ function RectificarPage() {
             console.error("Error limpiando borrador:", err);
         }
     }
-  };
+  }; 
 
   const handleAmountInputChange = (setterFunction, fieldName, rawValue) => {
       const parsedValue = parseInputAmount(rawValue);
@@ -572,7 +572,7 @@ function RectificarPage() {
   const totalJustificadoEfectivo = justificacionesEfectivo.reduce((sum,j) => sum + (parseFloat(j.monto)||0), 0);
   
   const totalGastosRendidos = gastosRendidos.reduce((sum, g) => sum + g.monto, 0);
-  const diferenciaGastos = gastosSistemaAPI - totalGastosRendidos;
+  const diferenciaGastos = totalGastosRendidos - gastosSistemaAPI;
 
   const diferenciaBrutaSinBoletas = efectivoFisicoParaDisplay - efectivoOdoo - totalGastosRendidos;
   let efectoNetoBoletas = 0;
@@ -595,7 +595,7 @@ function RectificarPage() {
 
   const getPageTitle = () => {
     const sessionName = sessionData?.name || `ID: ${sessionId}`;
-    if (pageMode === 'create') return `Crear Rectificación para Sesión: ${sessionName}`;
+    if (pageMode === 'create') return `Crear Rectificación Para Sesión: ${sessionName}`;
     if (pageMode === 'review' && existingRectification) return `Revisar Solicitud (${existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
     if (pageMode === 'view_only' && existingRectification) return `Detalle Solicitud (${existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
     if (pageMode === 'view_only' && !existingRectification) return `Detalle Sesión (Sin Rectificar): ${sessionName}`;
@@ -654,13 +654,13 @@ function RectificarPage() {
         <section className="desglose-caja-card">
           <h3>Desglose de Caja y Medios de Pago</h3>
           <table className="excel-style-table">
-            <thead><tr><th>Método</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Justificaciones (Ítem)</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Método</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Justificaciones</th><th>Acciones</th></tr></thead>
             <tbody>
               {efectivoConfig && (
                 <tr>
                   <td>{efectivoConfig.display_name}</td>
                   <td>{formatCurrency(efectivoOdoo)}</td>
-                  <td>{isFormEditableByAdmin ? <input type="text" name="nuevoSaldoFinalRealEfectivo" value={mainFormData.nuevoSaldoFinalRealEfectivo} onChange={handleMainFormChange} placeholder="Monto físico actual" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(efectivoFisicoParaDisplay)}</td>
+                  <td>{isFormEditableByAdmin ? <input type="text" name="nuevoSaldoFinalRealEfectivo" value={mainFormData.nuevoSaldoFinalRealEfectivo} onChange={handleMainFormChange} placeholder="Monto físico" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(efectivoFisicoParaDisplay)}</td>
                   <td className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
                   <td className="justificaciones-cell">
                     {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (isFormEditableByAdmin && puedeJustificarEfectivoCalculated ? <span className="text-muted-italic">Click en lápiz para justificar</span> : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
@@ -693,7 +693,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button attention"
-                                    title="Atención: Diferencia sin Justificar (Superadmin)"
+                                    title="Atención: Diferencia sin Justificar"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">warning</span>
@@ -703,7 +703,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button accept"
-                                    title="Revisado OK: Sin Diferencias (Superadmin)"
+                                    title="Revisado OK: Sin Diferencias"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">check_circle</span>
@@ -770,7 +770,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button attention"
-                                      title={`Atención: Diferencia sin Justificar en ${item.name} (Superadmin)`}
+                                      title={`Atención: Diferencia sin Justificar en ${item.name}`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">warning</span>
@@ -780,7 +780,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button accept"
-                                      title={`Revisado OK: Sin Diferencias en ${item.name} (Superadmin)`}
+                                      title={`Revisado OK: Sin Diferencias en ${item.name}`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">check_circle</span>
@@ -806,8 +806,8 @@ function RectificarPage() {
                   )}
                 </div>
                 <table className="excel-style-table condensed"><tbody>
-                    <tr><td>Gastos (Sistema)</td><td>{formatCurrency(gastosSistemaAPI)}</td></tr>
-                    <tr><td>Total Gastos Rendidos</td><td>{formatCurrency(totalGastosRendidos)}</td></tr>
+                    <tr><td>Gastos</td><td>{formatCurrency(gastosSistemaAPI)}</td></tr>
+                    <tr><td>Gastos Rendidos</td><td>{formatCurrency(totalGastosRendidos)}</td></tr>
                     <tr><td>Diferencia Gastos</td><td className={diferenciaGastos !==0 ? (diferenciaGastos > 0 ? 'text-green' : 'text-red') : ''}>{formatCurrency(diferenciaGastos)}</td></tr>
                 </tbody></table>
                 <h4>Detalle Gastos Rendidos:</h4>
@@ -961,7 +961,7 @@ function RectificarPage() {
         {canSuperAdminDecide && (
           <div className="review-actions-form">
             <h3>Decisión Superadministrador</h3>
-            <div className="form-group"><label htmlFor="superAdminMotivoDecision">Comentarios Adicionales (requerido para rechazar, 100 caracteres max.):</label><textarea id="superAdminMotivoDecision" maxLength={100} name="superAdminMotivoDecision" value={mainFormData.superAdminMotivoDecision} onChange={handleMainFormChange} rows="3" disabled={isSubmitting || !!success}/></div>
+            <div className="form-group"><label htmlFor="superAdminMotivoDecision">Comentarios Adicionales (requerido para rechazar, 100 caracteres máx.):</label><textarea id="superAdminMotivoDecision" maxLength={100} name="superAdminMotivoDecision" value={mainFormData.superAdminMotivoDecision} onChange={handleMainFormChange} rows="3" disabled={isSubmitting || !!success}/></div>
             <div className="action-buttons">
               <button onClick={() => handleApprovalAction('aprobada')} className="approve-button" disabled={isSubmitting || !!success}>Aprobar Solicitud</button>
               <button onClick={() => handleApprovalAction('rechazada')} className="reject-button" disabled={isSubmitting || !!success || !mainFormData.superAdminMotivoDecision.trim()}>Rechazar Solicitud</button>
@@ -992,7 +992,7 @@ function RectificarPage() {
                 </select>
               </div>
               <div className="form-group"><label htmlFor="itemJustMonto">Monto de la Justificación:</label><input type="text" id="itemJustMonto" name="monto" value={itemJustificationForm.monto} onChange={handleItemJustificationFormChange} placeholder="Ej: 5000" required /></div>
-              <div className="form-group"><label htmlFor="itemJustMotivo">Motivo de Justificación (Obligatorio, 100 caracteres max.):</label><textarea id="itemJustMotivo" maxLength={100} name="motivo" value={itemJustificationForm.motivo} onChange={handleItemJustificationFormChange} rows="3" required /></div>
+              <div className="form-group"><label htmlFor="itemJustMotivo">Motivo de Justificación (Obligatorio, 100 caracteres máx.):</label><textarea id="itemJustMotivo" maxLength={100} name="motivo" value={itemJustificationForm.motivo} onChange={handleItemJustificationFormChange} rows="3" required /></div>
               <button type="submit" className="modal-submit-button" disabled={isSubmitting || isSavingDraft}>Guardar Justificación</button>
             </form>
           </div>
@@ -1006,7 +1006,7 @@ function RectificarPage() {
             <form onSubmit={handleSaveGasto} className="modal-form">
                 <div className="form-group"><label htmlFor="gastoMonto">Monto:</label><input type="text" id="gastoMonto" name="monto" value={gastoForm.monto} onChange={handleGastoFormChange} required /></div>
                 <div className="form-group"><label htmlFor="gastoComprobante">Nº Comprobante/Referencia:</label><input type="text" id="gastoComprobante" name="comprobante" value={gastoForm.comprobante} onChange={handleGastoFormChange} required/></div>
-                <div className="form-group"><label htmlFor="gastoMotivo">Motivo/Descripción del Gasto:</label><textarea id="gastoMotivo" maxLength={50} name="motivo" value={gastoForm.motivo} onChange={handleGastoFormChange} rows="3" required /></div>
+                <div className="form-group"><label htmlFor="gastoMotivo">Motivo/Descripción del Gasto (máx. 100 caracteres):</label><textarea id="gastoMotivo" maxLength={50} name="motivo" value={gastoForm.motivo} onChange={handleGastoFormChange} rows="3" required /></div>
                 <button type="submit" className="modal-submit-button" disabled={isSubmitting || isSavingDraft}>Guardar Gasto</button>
             </form>
            </div>
@@ -1021,10 +1021,10 @@ function RectificarPage() {
                     <div className="form-group">
                         <label htmlFor="boletaEstadoBoleta">
                             Estado Boleta:
-                            { (diferenciaBrutaSinBoletas + efectoNetoBoletas) !== 0 && 
-                                <span style={{fontSize: '0.85em', display: 'block', color: '#666'}}>
+                            { (diferenciaBrutaSinBoletas + efectoNetoBoletas) !== 0  
+                                /*<span style={{fontSize: '0.85em', display: 'block', color: '#666'}}>
                                     Diferencia actual (previo a esta boleta): {formatCurrency(diferenciaBrutaSinBoletas + efectoNetoBoletas)}
-                                </span>
+                                </span>*/
                             }
                         </label>
                         <select id="boletaEstadoBoleta" name="estadoBoleta" value={boletaForm.estadoBoleta} onChange={handleBoletaFormChange}>
