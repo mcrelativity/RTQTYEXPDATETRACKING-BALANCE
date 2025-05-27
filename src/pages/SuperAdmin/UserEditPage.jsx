@@ -1,3 +1,7 @@
+// Página para editar un usuario existente (solo superadmin).
+// Permite cambiar el rol y el local asignado de un usuario.
+// Carga los datos del usuario y la lista de locales desde Firebase.
+// Guarda los cambios en la base de datos.
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, get, update } from 'firebase/database';
@@ -6,6 +10,7 @@ import { database } from '../../firebase/firebaseConfig';
 // import { auth, sendPasswordResetEmail } from '../../firebase/firebaseConfig';
 
 function UserEditPage() {
+    // Obtiene el ID del usuario desde la URL y prepara estados
     const { userId } = useParams();
     const navigate = useNavigate();
 
@@ -18,7 +23,7 @@ function UserEditPage() {
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
-    
+    // Carga datos del usuario y locales al montar
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -68,6 +73,7 @@ function UserEditPage() {
         fetchData();
     }, [userId]); 
 
+    // Guarda los cambios de rol y local asignado en la base de datos
     const handleSaveChanges = async (e) => {
         e.preventDefault();
         setError('');

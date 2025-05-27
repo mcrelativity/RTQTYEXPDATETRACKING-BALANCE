@@ -1,3 +1,6 @@
+// Página para listar y gestionar usuarios (solo superadmin).
+// Muestra la lista de usuarios, permite crear y editar usuarios.
+// Carga los usuarios desde Firebase y los ordena por local y email.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { database } from '../../firebase/firebaseConfig';
@@ -5,12 +8,13 @@ import { ref, get, query, orderByChild } from 'firebase/database';
 
 
 function UserListPage() {
+    // Estados para la lista de usuarios, carga y errores
     const navigate = useNavigate();
     const [usersList, setUsersList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-
+    // Carga la lista de usuarios al montar el componente
     useEffect(() => {
         const fetchUsers = async () => {
             setLoading(true);

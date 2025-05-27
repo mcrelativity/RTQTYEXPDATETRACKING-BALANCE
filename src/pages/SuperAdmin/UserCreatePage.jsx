@@ -1,3 +1,7 @@
+// Página para crear un nuevo usuario (solo superadmin).
+// Permite ingresar email, contraseña, rol y local asignado.
+// Guarda el usuario en Firebase Auth y en la base de datos.
+// Al crear, cierra la sesión por seguridad y redirige a la lista de usuarios.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -6,6 +10,7 @@ import { auth, database } from '../../firebase/firebaseConfig';
 
 
 function UserCreatePage() {
+    // Estados para los campos del formulario y control de errores/carga
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -14,7 +19,7 @@ function UserCreatePage() {
     const [stores, setStores] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
+    // Carga la lista de locales desde Firebase
     useEffect(() => {
         const fetchStores = async () => {
             const storesRef = ref(database, 'stores');
@@ -41,6 +46,7 @@ function UserCreatePage() {
         fetchStores();
     }, [storeId]); 
 
+    // Crea el usuario en Auth y lo guarda en la base de datos
     const handleCreateUser = async (e) => {
         e.preventDefault();
         setError('');

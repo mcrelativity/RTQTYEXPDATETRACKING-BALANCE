@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { database } from '../firebase/firebaseConfig';
 import { ref, push, serverTimestamp, get, update, set } from "firebase/database";
 
+// Configuración de la API y métodos de pago por defecto.
+// Estas constantes definen cómo la aplicación interactúa con servicios externos y cómo entiende los métodos de pago.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_ENDPOINT = `${API_BASE_URL}/odoo`;
 const BEARER_TOKEN = import.meta.env.VITE_API_BEARER_TOKEN;
@@ -16,6 +18,9 @@ const DEFAULT_PAYMENT_METHODS_CONFIG = [
   { id: 'planilla', odoo_names: ['Planilla'], display_name: 'Planilla'},
 ];
 
+// Función asíncrona para realizar llamadas a la API de Odoo.
+// Maneja la construcción de la petición POST, incluyendo cabeceras y cuerpo.
+// También gestiona errores básicos de respuesta de la API.
 async function callOdooApi(apiUrl, requestData) {
   const headers = { 'Content-Type': 'application/json', Authorization: `bearer ${BEARER_TOKEN}` };
   const requestOptions = { method: 'POST', headers: headers, body: JSON.stringify(requestData) };
@@ -30,8 +35,10 @@ async function callOdooApi(apiUrl, requestData) {
   } catch (error) { console.error("Error calling Odoo API:", error); throw error; }
 }
 
+// Función para obtener los datos de pagos de una sesión específica desde Odoo.
+// Utiliza callOdooApi para realizar la petición.
 async function fetchSessionPayments(apiUrl, sessionId) {
-  if (sessionId === null || sessionId === undefined) return [];
+  if (sessionId === null || sessionId === undefined) return []; // Retorna array vacío si no hay sessionId.
   const requestData = {
     model: "pos.payment",
     filters: [[["session_id", "in", [parseInt(String(sessionId), 10)]], ["pos_order_id.state", "in", ["paid", "invoiced", "done"]]]],
@@ -40,18 +47,22 @@ async function fetchSessionPayments(apiUrl, sessionId) {
   return await callOdooApi(apiUrl, requestData);
 }
 
+// Función para formatear una cadena de fecha/hora a un formato legible local (es-CL).
 const formatDateTime = (dateTimeString) => {
   if (!dateTimeString) return 'N/A';
   try { const date = new Date(dateTimeString); return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }); }
   catch (e) { return dateTimeString; }
 };
 
+// Función para formatear un número como moneda chilena (CLP).
 const formatCurrency = (amount) => {
   const numAmount = parseFloat(String(amount).replace(/\./g, '').replace(/,/g, '.'));
   if (isNaN(numAmount)) return 'N/A';
   return numAmount.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
+// Función para parsear y limpiar un valor de input de monto, permitiendo un signo negativo al inicio.
+// Elimina puntos y cualquier caracter no numérico (excepto el signo inicial).
 const parseInputAmount = (value) => {
   if (value === null || value === undefined) return '';
   let stringValue = String(value).trim();
@@ -71,6 +82,8 @@ const parseInputAmount = (value) => {
   return sign + number.toString(); 
 };
 
+// Función recursiva para sanitizar un objeto antes de guardarlo en Firebase.
+// Principalmente convierte valores 'undefined' a 'null', ya que Firebase no maneja bien 'undefined'.
 function sanitizeForFirebase(dataObject) {
   if (dataObject === null || typeof dataObject !== 'object') { return dataObject === undefined ? null : dataObject; }
   if (Array.isArray(dataObject)) { return dataObject.map(item => sanitizeForFirebase(item)); }
@@ -78,6 +91,7 @@ function sanitizeForFirebase(dataObject) {
   for (const key in dataObject) {
     if (dataObject.hasOwnProperty(key)) {
       const value = dataObject[key];
+      // Preserva el objeto especial de Firebase para serverTimestamp.
       if (typeof value === 'object' && value !== null && value['.sv'] === 'timestamp') { sanitized[key] = value; }
       else { sanitized[key] = sanitizeForFirebase(value); }
     }
@@ -85,37 +99,44 @@ function sanitizeForFirebase(dataObject) {
   return sanitized;
 }
 
+// Componente principal de la página de Rectificación.
 function RectificarPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { sessionId } = useParams();
-  const { currentUser, userRole } = useAuth();
+  const navigate = useNavigate(); // Hook para la navegación programática.
+  const location = useLocation(); // Hook para acceder al estado pasado en la navegación.
+  const { sessionId } = useParams(); // Hook para obtener el 'sessionId' de los parámetros de la URL.
+  const { currentUser, userRole } = useAuth(); // Hook para obtener el usuario actual y su rol.
 
-  const [sessionData, setSessionData] = useState(null);
-  const [pageMode, setPageMode] = useState('view_only');
-  const [paymentDetails, setPaymentDetails] = useState([]);
-  const [existingRectification, setExistingRectification] = useState(null);
+  // Estados para almacenar datos de la sesión y de la rectificación.
+  const [sessionData, setSessionData] = useState(null); // Datos de la sesión POS de Odoo.
+  const [pageMode, setPageMode] = useState('view_only'); // Controla el modo de la página: 'create', 'review', 'view_only'.
+  const [paymentDetails, setPaymentDetails] = useState([]); // Array con detalles de medios de pago (no efectivo) y sus montos físicos.
+  const [existingRectification, setExistingRectification] = useState(null); // Almacena una rectificación ya enviada si se está revisando o viendo.
   
+  // Estados para los datos del formulario principal.
   const [mainFormData, setMainFormData] = useState({
-    nuevoSaldoFinalRealEfectivo: '',
-    superAdminMotivoDecision: ''
+    nuevoSaldoFinalRealEfectivo: '', // Input para el monto físico de efectivo.
+    superAdminMotivoDecision: '' // Input para los comentarios del superadmin.
   });
 
-  const [itemJustifications, setItemJustifications] = useState({});
-  const [gastosRendidos, setGastosRendidos] = useState([]);
-  const [boletasPendientes, setBoletasPendientes] = useState([]);
-  const [gastosSistemaAPI, setGastosSistemaAPI] = useState(0);
+  // Estados para los datos de justificaciones, gastos y boletas.
+  const [itemJustifications, setItemJustifications] = useState({}); // Objeto para almacenar justificaciones por método de pago.
+  const [gastosRendidos, setGastosRendidos] = useState([]); // Array de gastos rendidos.
+  const [boletasPendientes, setBoletasPendientes] = useState([]); // Array de boletas pendientes/rectificadas.
+  const [gastosSistemaAPI, setGastosSistemaAPI] = useState(0); // Gastos de la sesión según Odoo.
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // Estados para la UI: carga, errores y mensajes de éxito.
+  const [isLoading, setIsLoading] = useState(true); // Indica si la página está cargando datos.
+  const [error, setError] = useState(''); // Mensaje de error general.
+  const [success, setSuccess] = useState(''); // Mensaje de éxito para envío final.
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [draftSavedSuccess, setDraftSavedSuccess] = useState(false);
-  const [draftLoadedSuccess, setDraftLoadedSuccess] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  // Estados para controlar acciones de envío y guardado de borrador.
+  const [isSubmitting, setIsSubmitting] = useState(false); // Indica si se está enviando la rectificación.
+  const [isSavingDraft, setIsSavingDraft] = useState(false); // Indica si se está guardando un borrador.
+  const [draftSavedSuccess, setDraftSavedSuccess] = useState(false); // Feedback: borrador guardado exitosamente.
+  const [draftLoadedSuccess, setDraftLoadedSuccess] = useState(false); // Feedback: borrador cargado exitosamente.
+  const [showConfirmModal, setShowConfirmModal] = useState(false); // Controla visibilidad del modal de confirmación.
 
+  // Estados para los modales de ingreso de datos (justificaciones, gastos, boletas).
   const [isItemJustificationModalOpen, setIsItemJustificationModalOpen] = useState(false);
   const [currentItemForJustification, setCurrentItemForJustification] = useState(null);
   const [itemJustificationForm, setItemJustificationForm] = useState({ monto: '', motivo: '', tipo: 'faltante' });
@@ -129,6 +150,9 @@ function RectificarPage() {
   const [isViewJustificationsModalOpen, setIsViewJustificationsModalOpen] = useState(false);
   const [justificationsToViewInfo, setJustificationsToViewInfo] = useState({ name: '', justifications: [] });
 
+  // Función memoizada para cargar los datos iniciales de la sesión desde Odoo y Firebase.
+  // Esta función establece los datos base de la sesión, pagos, y cualquier rectificación existente.
+  // Es el primer paso en la carga de datos de la página.
   const loadInitialData = useCallback(async (passedSessionData, passedMode, passedReqId, urlSessionIdParam) => {
     setIsLoading(true); setError(''); setSuccess('');
     setDraftLoadedSuccess(false); 
@@ -218,11 +242,13 @@ function RectificarPage() {
   
     } catch (err) { setError('Error al cargar datos detallados.'); }
     finally { setIsLoading(false); }
-  }, [userRole]);
+  }, [userRole]); 
   
+  // useEffect para la carga inicial de datos cuando el componente se monta o sessionId/location.state cambian.
   useEffect(() => {
     const stateFromNavigation = location.state;
     const performInitialLoad = async () => {
+      // Llama a loadInitialData, pasando el sessionId de la URL como urlSessionIdParam.
       await loadInitialData(
         stateFromNavigation?.sessionInitialData,
         stateFromNavigation?.mode,
@@ -230,55 +256,71 @@ function RectificarPage() {
         sessionId 
       );
     };
-    if (sessionId) {
+    if (sessionId) { // Asegura que tenemos un sessionId antes de intentar cargar.
       performInitialLoad();
     } else {
       setError("ID de sesión no encontrado.");
       setIsLoading(false);
     }
-  }, [sessionId, location.state, loadInitialData]);
+  }, [sessionId, location.state, loadInitialData]); 
   
+  // useEffect para cargar un borrador guardado, si aplica.
+  // Se ejecuta después de que la carga inicial (isLoading=false) haya terminado
+  // y los datos necesarios como sessionData y currentUser estén disponibles.
   useEffect(() => {
-    const tryLoadDraft = async () => {
-      if (userRole === 'admin' && pageMode === 'create' && !existingRectification && sessionData?.id && currentUser?.uid) {
+    const stateFromNavigation = location.state; // Accede al estado de la navegación.
+
+    // Función interna para encapsular la lógica de carga de borrador.
+    const tryLoadRelevantDraft = async () => {
+      // Condiciones básicas para proceder: tener datos de sesión y usuario.
+      if (!sessionData?.id || !currentUser?.uid) return; 
+  
+      let adminIdForDraftLookup = null; // UID del admin cuyo borrador se intentará cargar.
+      let isCurrentUserAdminLoadingDraft = false; // Flag: ¿El admin actual está cargando su propio borrador?
+      let isSuperAdminViewingDraft = false;     // Flag: ¿Un superadmin está viendo el borrador de otro admin?
+  
+      // Escenario 1: El usuario es 'admin', está en modo 'create' y no hay una rectificación enviada.
+      // En este caso, se intenta cargar el borrador del propio admin.
+      // Ahora los borradores son colaborativos: se guarda/carga un solo borrador por sesión.
+      // Cargar el borrador colaborativo si existe y la sesión está sin rectificar.
+      // Para superadmin: solo cargar si viene viewDraft=true en location.state
+      const shouldLoadDraft =
+        (!existingRectification && sessionData?.id && userRole === 'admin') ||
+        (!existingRectification && sessionData?.id && userRole === 'superadmin' && location.state?.viewDraft);
+      if (shouldLoadDraft) {
         try {
-          const draftRef = ref(database, `rectificationDrafts/${sessionData.id}/${currentUser.uid}`);
-          const snap = await get(draftRef);
+          const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
+          const snap = await get(draftRef); // Lee el borrador colaborativo de Firebase.
           if (snap.exists()) {
             const loadedDraft = snap.val();
-            setMainFormData(prevMain => ({
-              ...prevMain,
-              nuevoSaldoFinalRealEfectivo: loadedDraft.mainFormData?.nuevoSaldoFinalRealEfectivo ?? prevMain.nuevoSaldoFinalRealEfectivo,
-            }));
+            setMainFormData({
+              nuevoSaldoFinalRealEfectivo: loadedDraft.mainFormData?.nuevoSaldoFinalRealEfectivo ?? '',
+              superAdminMotivoDecision: ''
+            });
             setItemJustifications(loadedDraft.itemJustifications || {});
             setGastosRendidos(loadedDraft.gastosRendidos || []);
             setBoletasPendientes(loadedDraft.boletasPendientes || []);
-            
-            setPaymentDetails(prevDetails => {
-              const draftPaymentDetails = loadedDraft.paymentDetails || [];
-              if (draftPaymentDetails.length > 0 && prevDetails.length > 0) {
-                  return prevDetails.map(pd => {
-                      const draftDetail = draftPaymentDetails.find(dpd => dpd.id === pd.id);
-                      return draftDetail ? { ...pd, fisicoEditable: draftDetail.fisicoEditable !== undefined ? draftDetail.fisicoEditable : pd.fisicoEditable } : pd;
-                  });
-              }
-              return draftPaymentDetails.length > 0 ? draftPaymentDetails : prevDetails; 
-            });
-  
-            setDraftLoadedSuccess(true); 
+            // Si el borrador tiene paymentDetails, úsalo completo. Si no, deja el valor anterior.
+            if (Array.isArray(loadedDraft.paymentDetails) && loadedDraft.paymentDetails.length > 0) {
+              setPaymentDetails(loadedDraft.paymentDetails);
+            }
+            setDraftLoadedSuccess(true);
             setTimeout(() => setDraftLoadedSuccess(false), 3000);
           }
         } catch (draftError) {
-          console.error("Error cargando borrador:", draftError);
+          console.error(`Error cargando borrador colaborativo:`, draftError);
         }
       }
     };
   
+    // Ejecuta la lógica de carga de borrador solo si la carga inicial ha terminado y los datos necesarios están presentes.
     if (!isLoading && sessionData && currentUser) { 
-      tryLoadDraft();
+      tryLoadRelevantDraft();
     }
-  }, [isLoading, pageMode, existingRectification, sessionData, currentUser, userRole]);
+    // Este efecto depende de múltiples estados que cambian durante la inicialización y la interacción.
+  }, [isLoading, pageMode, existingRectification, sessionData, currentUser, userRole, location.state]);
 
+  // Guardar el borrador colaborativo (accesible por cualquier admin).
   const handleSaveDraft = async () => {
     if (!sessionData || userRole !== 'admin' || pageMode !== 'create') {
       setError("Solo los administradores pueden guardar borradores en modo creación.");
@@ -286,19 +328,19 @@ function RectificarPage() {
     }
     setIsSavingDraft(true);
     setError('');
-    setSuccess(''); 
+    setSuccess('');
     setDraftSavedSuccess(false);
     setDraftLoadedSuccess(false);
     try {
-      const draftRef = ref(database, `rectificationDrafts/${sessionData.id}/${currentUser?.uid}`);
+      const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
       const draftDataToSave = {
         mainFormData: {
-            nuevoSaldoFinalRealEfectivo: mainFormData.nuevoSaldoFinalRealEfectivo
+          nuevoSaldoFinalRealEfectivo: mainFormData.nuevoSaldoFinalRealEfectivo
         },
         itemJustifications,
         gastosRendidos,
         boletasPendientes,
-        paymentDetails 
+        paymentDetails
       };
       await set(draftRef, sanitizeForFirebase(draftDataToSave));
       setDraftSavedSuccess(true);
@@ -313,16 +355,17 @@ function RectificarPage() {
     }
   };
 
+  // Elimina el borrador colaborativo después de enviar la solicitud.
   const clearDraftAfterSubmit = async () => {
-    if (sessionData?.id && currentUser?.uid) {
-        try {
-            const draftRef = ref(database, `rectificationDrafts/${sessionData.id}/${currentUser.uid}`);
-            await set(draftRef, null);
-        } catch (err) {
-            console.error("Error limpiando borrador:", err);
-        }
+    if (sessionData?.id) {
+      try {
+        const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
+        await set(draftRef, null);
+      } catch (err) {
+        console.error("Error limpiando borrador:", err);
+      }
     }
-  }; 
+  };
 
   const handleAmountInputChange = (setterFunction, fieldName, rawValue) => {
       const parsedValue = parseInputAmount(rawValue);
@@ -548,12 +591,15 @@ function RectificarPage() {
     setIsViewJustificationsModalOpen(true);
   };
 
+  // Determina si el formulario es editable por un admin (en modo creación).
   const isFormEditableByAdmin = pageMode === 'create' && userRole === 'admin';
+  // Determina si un superadmin puede tomar una decisión sobre una solicitud pendiente.
   const canSuperAdminDecide = pageMode === 'review' && existingRectification?.status === 'pendiente' && userRole === 'superadmin';
 
+  // Calcula el monto de efectivo físico a mostrar, considerando el modo y rol.
   const efectivoOdoo = parseFloat(sessionData?.cash_register_balance_end) || 0;
   let efectivoFisicoParaDisplay;
-  if (isFormEditableByAdmin) {
+  if (isFormEditableByAdmin || (userRole === 'superadmin' && !existingRectification && location.state?.adminDraftOwnerId)) {
       const parsedInput = parseFloat(parseInputAmount(mainFormData.nuevoSaldoFinalRealEfectivo));
       if (mainFormData.nuevoSaldoFinalRealEfectivo.trim() === '') {
           efectivoFisicoParaDisplay = parseFloat(sessionData?.cash_register_balance_end_real) || 0;
@@ -572,13 +618,14 @@ function RectificarPage() {
   const totalJustificadoEfectivo = justificacionesEfectivo.reduce((sum,j) => sum + (parseFloat(j.monto)||0), 0);
   
   const totalGastosRendidos = gastosRendidos.reduce((sum, g) => sum + g.monto, 0);
-  const diferenciaGastos = totalGastosRendidos - gastosSistemaAPI;
+  const diferenciaGastos = gastosSistemaAPI - totalGastosRendidos;
 
+  // Lógica de cálculo de diferencias para el efectivo, incluyendo gastos y boletas.
   const diferenciaBrutaSinBoletas = efectivoFisicoParaDisplay - efectivoOdoo - totalGastosRendidos;
   let efectoNetoBoletas = 0;
   boletasPendientes.forEach(b => {
     const montoBoleta = parseFloat(b.monto) || 0;
-    if (b.estadoBoleta === 'Rectificacion') {
+    if (b.estadoBoleta === 'Rectificacion') { 
         efectoNetoBoletas -= montoBoleta;
     } else { 
         efectoNetoBoletas += montoBoleta;
@@ -586,16 +633,23 @@ function RectificarPage() {
   });
   const diferenciaBrutaConBoletas = diferenciaBrutaSinBoletas + efectoNetoBoletas; 
   
-  let totalNetoBoletasDisplay = 0;
+  let totalNetoBoletasDisplay = 0; // Para mostrar en la UI el neto de boletas.
    boletasPendientes.forEach(b => {
     totalNetoBoletasDisplay += (b.estadoBoleta === 'Rectificacion' ? -1 : 1) * (parseFloat(b.monto) || 0);
   });
 
+  // Diferencia NETA final para el efectivo, después de todas las justificaciones.
   const diferenciaEfectivoNeta = diferenciaBrutaConBoletas + totalJustificadoEfectivo;
 
+  // Genera el título de la página dinámicamente.
   const getPageTitle = () => {
     const sessionName = sessionData?.name || `ID: ${sessionId}`;
-    if (pageMode === 'create') return `Crear Rectificación Para Sesión: ${sessionName}`;
+    // Título específico si un superadmin está viendo el borrador de un admin.
+    if (userRole === 'superadmin' && !existingRectification && location.state?.adminDraftOwnerId) {
+        const adminIdShort = location.state.adminDraftOwnerId.substring(0,6);
+        return `Viendo Borrador (Admin: ${adminIdShort}...) para Sesión: ${sessionName}`;
+    }
+    if (pageMode === 'create') return `Crear Rectificación para Sesión: ${sessionName}`;
     if (pageMode === 'review' && existingRectification) return `Revisar Solicitud (${existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
     if (pageMode === 'view_only' && existingRectification) return `Detalle Solicitud (${existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
     if (pageMode === 'view_only' && !existingRectification) return `Detalle Sesión (Sin Rectificar): ${sessionName}`;
@@ -606,7 +660,14 @@ function RectificarPage() {
   if (error && !sessionData && !isLoading) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
   if (!sessionData && !isLoading) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
  
-  const puedeJustificarEfectivoCalculated = isFormEditableByAdmin && (diferenciaBrutaConBoletas !== 0 || diferenciaEfectivoNeta !== 0);
+  // Variable final para determinar si el formulario debe ser editable.
+  // Un admin en modo 'create' puede editar.
+  // Un superadmin viendo el borrador de un admin NO puede editar.
+  const finalIsFormEditable = isFormEditableByAdmin && !(userRole === 'superadmin' && location.state?.adminDraftOwnerId);
+  
+  // Condición para mostrar el botón de justificar efectivo.
+  const puedeJustificarEfectivoCalculated = finalIsFormEditable && (diferenciaBrutaConBoletas !== 0 || diferenciaEfectivoNeta !== 0);
+
 
   return (
     <div className="rectificar-page-container">
@@ -614,7 +675,7 @@ function RectificarPage() {
         <div className="header-content-wrapper">
             <h1>{getPageTitle()}</h1>
             <div className="header-actions">
-                {isFormEditableByAdmin && (
+                {finalIsFormEditable && (
                     <button
                         type="button"
                         onClick={handleSaveDraft}
@@ -631,10 +692,10 @@ function RectificarPage() {
       {error && <p className="error-message page-level-error">{error}</p>}
       {success && <p className="success-message page-level-success">{success}</p>}
       
-      {isFormEditableByAdmin && draftSavedSuccess && !isSavingDraft &&
+      {finalIsFormEditable && draftSavedSuccess && !isSavingDraft &&
         <p className="draft-feedback-message page-level-draft-success">¡Borrador guardado exitosamente!</p>
       }
-      {isFormEditableByAdmin && draftLoadedSuccess && !isLoading &&
+      {draftLoadedSuccess && !isLoading &&
         <p className="draft-feedback-message page-level-draft-loaded">Borrador anterior cargado.</p>
       }
 
@@ -654,19 +715,19 @@ function RectificarPage() {
         <section className="desglose-caja-card">
           <h3>Desglose de Caja y Medios de Pago</h3>
           <table className="excel-style-table">
-            <thead><tr><th>Método</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Justificaciones</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Método</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Justificaciones (Ítem)</th><th>Acciones</th></tr></thead>
             <tbody>
               {efectivoConfig && (
                 <tr>
                   <td>{efectivoConfig.display_name}</td>
                   <td>{formatCurrency(efectivoOdoo)}</td>
-                  <td>{isFormEditableByAdmin ? <input type="text" name="nuevoSaldoFinalRealEfectivo" value={mainFormData.nuevoSaldoFinalRealEfectivo} onChange={handleMainFormChange} placeholder="Monto físico" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(efectivoFisicoParaDisplay)}</td>
+                  <td>{finalIsFormEditable ? <input type="text" name="nuevoSaldoFinalRealEfectivo" value={mainFormData.nuevoSaldoFinalRealEfectivo} onChange={handleMainFormChange} placeholder="Monto físico actual" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(efectivoFisicoParaDisplay)}</td>
                   <td className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
                   <td className="justificaciones-cell">
-                    {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (isFormEditableByAdmin && puedeJustificarEfectivoCalculated ? <span className="text-muted-italic">Click en lápiz para justificar</span> : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
+                    {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (finalIsFormEditable && puedeJustificarEfectivoCalculated ? <span className="text-muted-italic">Click en lápiz para justificar</span> : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
                   </td>
                   <td>
-                    {isFormEditableByAdmin && puedeJustificarEfectivoCalculated && 
+                    {finalIsFormEditable && puedeJustificarEfectivoCalculated && 
                         <button 
                             onClick={() => openItemJustificationModal({ id: efectivoConfig.id, name: efectivoConfig.display_name, sistema: efectivoOdoo, fisicoEditable: mainFormData.nuevoSaldoFinalRealEfectivo })} 
                             className="action-icon-button justify" title="Justificar Efectivo" disabled={isSubmitting || isSavingDraft}>
@@ -693,7 +754,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button attention"
-                                    title="Atención: Diferencia sin Justificar"
+                                    title="Atención: Diferencia sin Justificar (Superadmin)"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">warning</span>
@@ -703,7 +764,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button accept"
-                                    title="Revisado OK: Sin Diferencias"
+                                    title="Revisado OK: Sin Diferencias (Superadmin)"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">check_circle</span>
@@ -718,34 +779,35 @@ function RectificarPage() {
                 const justsArray = itemJustifications[item.name] || [];
                 const totalJustificadoItem = justsArray.reduce((sum, j) => sum + (parseFloat(j.monto)||0), 0);
                 
-                let fisicoItemParaDisplay;
+                let fisicoItemParaDisplayValue;
                 let fisicoItemNumerico;
                 
-                if (isFormEditableByAdmin) {
-                    fisicoItemParaDisplay = item.fisicoEditable; 
-                    const parsedFisicoEditable = parseFloat(parseInputAmount(item.fisicoEditable));
-                    fisicoItemNumerico = item.fisicoEditable.trim() === '' ? item.sistema : (isNaN(parsedFisicoEditable) ? item.sistema : parsedFisicoEditable);
+                if (finalIsFormEditable || (userRole === 'superadmin' && location.state?.viewDraft && !existingRectification)) {
+                    // Mostrar el valor del borrador, o 0 si está vacío/no definido
+                    fisicoItemParaDisplayValue = (item.fisicoEditable !== undefined && item.fisicoEditable.trim() !== '') ? item.fisicoEditable : '0';
+                    const parsedFisicoEditable = parseFloat(parseInputAmount(fisicoItemParaDisplayValue));
+                    fisicoItemNumerico = !isNaN(parsedFisicoEditable) ? parsedFisicoEditable : 0;
                 } else { 
                     const fisicoGuardado = existingRectification?.rectificationDetails?.justificacionesPorMetodo?.[item.name]?.montoFisicoIngresado;
-                    fisicoItemParaDisplay = fisicoGuardado !== undefined ? fisicoGuardado : item.sistema;
-                    fisicoItemNumerico = parseFloat(fisicoItemParaDisplay);
-                    if(isNaN(fisicoItemNumerico)) fisicoItemNumerico = item.sistema;
+                    fisicoItemParaDisplayValue = fisicoGuardado !== undefined ? String(fisicoGuardado) : '0';
+                    fisicoItemNumerico = parseFloat(parseInputAmount(fisicoItemParaDisplayValue));
+                    if(isNaN(fisicoItemNumerico)) fisicoItemNumerico = 0;
                 }
                 
                 const diferenciaItemBruta = fisicoItemNumerico - item.sistema;
                 const diferenciaItemNetaConJustificaciones = diferenciaItemBruta > 0 ? diferenciaItemBruta - totalJustificadoItem : diferenciaItemBruta + totalJustificadoItem;
-                const puedeJustificarItemCurrent = isFormEditableByAdmin && diferenciaItemBruta !== 0;
+                const puedeJustificarItemCurrent = finalIsFormEditable && diferenciaItemBruta !== 0;
 
                 return (
                   <tr key={item.id}>
                     <td>{item.name}</td><td>{formatCurrency(item.sistema)}</td>
-                    <td>{isFormEditableByAdmin ? <input type="text" value={item.fisicoEditable} onChange={(e) => handlePaymentDetailChange(item.name, 'fisicoEditable', e.target.value)} placeholder="Monto físico" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(fisicoItemParaDisplay)}</td>
+                    <td>{finalIsFormEditable ? <input type="text" value={item.fisicoEditable || ''} onChange={(e) => handlePaymentDetailChange(item.name, 'fisicoEditable', e.target.value)} placeholder="Monto físico" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(fisicoItemParaDisplayValue)}</td>
                     <td className={diferenciaItemNetaConJustificaciones !== 0 ? (diferenciaItemNetaConJustificaciones < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaItemNetaConJustificaciones)}</td>
                     <td className="justificaciones-cell">
-                      {justsArray.length > 0 ? justsArray.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (isFormEditableByAdmin && puedeJustificarItemCurrent ? <span className="text-muted-italic">Click en lápiz para justificar</span> : (diferenciaItemBruta === 0 ? 'OK' : 'N/A'))}
+                      {justsArray.length > 0 ? justsArray.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (finalIsFormEditable && puedeJustificarItemCurrent ? <span className="text-muted-italic">Click en lápiz para justificar</span> : (diferenciaItemBruta === 0 ? 'OK' : 'N/A'))}
                     </td>
                     <td>
-                      {isFormEditableByAdmin && puedeJustificarItemCurrent && 
+                      {finalIsFormEditable && puedeJustificarItemCurrent && 
                         <button onClick={() => openItemJustificationModal(item)} className="action-icon-button justify" title="Justificar ítem" disabled={isSubmitting || isSavingDraft}>
                             <span className="material-symbols-outlined">edit_note</span>
                         </button>
@@ -770,7 +832,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button attention"
-                                      title={`Atención: Diferencia sin Justificar en ${item.name}`}
+                                      title={`Atención: Diferencia sin Justificar en ${item.name} (Superadmin)`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">warning</span>
@@ -780,7 +842,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button accept"
-                                      title={`Revisado OK: Sin Diferencias en ${item.name}`}
+                                      title={`Revisado OK: Sin Diferencias en ${item.name} (Superadmin)`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">check_circle</span>
@@ -799,15 +861,15 @@ function RectificarPage() {
             <section className="gastos-card">
                 <div className="card-header-action">
                   <h3>Gastos</h3>
-                  {isFormEditableByAdmin && (
+                  {finalIsFormEditable && (
                     <button onClick={openGastoModal} disabled={isSubmitting || isSavingDraft} className="add-item-button">
                       <span className="material-symbols-outlined">add_circle</span> Rendir Gasto
                     </button>
                   )}
                 </div>
                 <table className="excel-style-table condensed"><tbody>
-                    <tr><td>Gastos</td><td>{formatCurrency(gastosSistemaAPI)}</td></tr>
-                    <tr><td>Gastos Rendidos</td><td>{formatCurrency(totalGastosRendidos)}</td></tr>
+                    <tr><td>Gastos (Sistema)</td><td>{formatCurrency(gastosSistemaAPI)}</td></tr>
+                    <tr><td>Total Gastos Rendidos</td><td>{formatCurrency(totalGastosRendidos)}</td></tr>
                     <tr><td>Diferencia Gastos</td><td className={diferenciaGastos !==0 ? (diferenciaGastos > 0 ? 'text-green' : 'text-red') : ''}>{formatCurrency(diferenciaGastos)}</td></tr>
                 </tbody></table>
                 <h4>Detalle Gastos Rendidos:</h4>
@@ -819,7 +881,7 @@ function RectificarPage() {
                         <th>Monto</th>
                         <th>Motivo</th>
                         <th>Comprobante</th>
-                        {isFormEditableByAdmin && <th>Acción</th>}
+                        {finalIsFormEditable && <th>Acción</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -829,7 +891,7 @@ function RectificarPage() {
                           <td>{formatCurrency(g.monto)}</td>
                           <td>{g.motivo}</td>
                           <td>{g.comprobante || '-'}</td>
-                          {isFormEditableByAdmin && (
+                          {finalIsFormEditable && (
                             <td>
                               <button
                                 className="action-icon-button delete"
@@ -855,7 +917,7 @@ function RectificarPage() {
             <section className="boletas-card">
                 <div className="card-header-action">
                   <h3>Boletas (Neto: {formatCurrency(totalNetoBoletasDisplay)})</h3>
-                  {isFormEditableByAdmin && (
+                  {finalIsFormEditable && (
                     <button onClick={openBoletaModal} disabled={isSubmitting || isSavingDraft} className="add-item-button">
                       <span className="material-symbols-outlined">add_circle</span> Ingresar Boleta
                     </button>
@@ -870,7 +932,7 @@ function RectificarPage() {
                         <th>Nº Boleta</th>
                         <th>Monto</th>
                         <th>Estado</th>
-                        {isFormEditableByAdmin && <th>Acción</th>}
+                        {finalIsFormEditable && <th>Acción</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -880,7 +942,7 @@ function RectificarPage() {
                           <td>{b.numeroBoleta}</td>
                           <td className={b.estadoBoleta === 'Rectificacion' ? 'text-red' : ''}>{formatCurrency(b.monto)}</td>
                           <td>{b.estadoBoleta}</td>
-                          {isFormEditableByAdmin && (
+                          {finalIsFormEditable && (
                             <td>
                               <button
                                 className="action-icon-button delete"
@@ -918,7 +980,7 @@ function RectificarPage() {
             </section>
         )}
 
-        {isFormEditableByAdmin && (
+        {finalIsFormEditable && (
           <div className="form-actions">
             <button
               onClick={handleSubmitRectification}
@@ -961,7 +1023,7 @@ function RectificarPage() {
         {canSuperAdminDecide && (
           <div className="review-actions-form">
             <h3>Decisión Superadministrador</h3>
-            <div className="form-group"><label htmlFor="superAdminMotivoDecision">Comentarios Adicionales (requerido para rechazar, 100 caracteres máx.):</label><textarea id="superAdminMotivoDecision" maxLength={100} name="superAdminMotivoDecision" value={mainFormData.superAdminMotivoDecision} onChange={handleMainFormChange} rows="3" disabled={isSubmitting || !!success}/></div>
+            <div className="form-group"><label htmlFor="superAdminMotivoDecision">Comentarios Adicionales (requerido para rechazar, 100 caracteres max.):</label><textarea id="superAdminMotivoDecision" maxLength={100} name="superAdminMotivoDecision" value={mainFormData.superAdminMotivoDecision} onChange={handleMainFormChange} rows="3" disabled={isSubmitting || !!success}/></div>
             <div className="action-buttons">
               <button onClick={() => handleApprovalAction('aprobada')} className="approve-button" disabled={isSubmitting || !!success}>Aprobar Solicitud</button>
               <button onClick={() => handleApprovalAction('rechazada')} className="reject-button" disabled={isSubmitting || !!success || !mainFormData.superAdminMotivoDecision.trim()}>Rechazar Solicitud</button>
@@ -992,7 +1054,7 @@ function RectificarPage() {
                 </select>
               </div>
               <div className="form-group"><label htmlFor="itemJustMonto">Monto de la Justificación:</label><input type="text" id="itemJustMonto" name="monto" value={itemJustificationForm.monto} onChange={handleItemJustificationFormChange} placeholder="Ej: 5000" required /></div>
-              <div className="form-group"><label htmlFor="itemJustMotivo">Motivo de Justificación (Obligatorio, 100 caracteres máx.):</label><textarea id="itemJustMotivo" maxLength={100} name="motivo" value={itemJustificationForm.motivo} onChange={handleItemJustificationFormChange} rows="3" required /></div>
+              <div className="form-group"><label htmlFor="itemJustMotivo">Motivo de Justificación (Obligatorio, 100 caracteres max.):</label><textarea id="itemJustMotivo" maxLength={100} name="motivo" value={itemJustificationForm.motivo} onChange={handleItemJustificationFormChange} rows="3" required /></div>
               <button type="submit" className="modal-submit-button" disabled={isSubmitting || isSavingDraft}>Guardar Justificación</button>
             </form>
           </div>
@@ -1006,7 +1068,7 @@ function RectificarPage() {
             <form onSubmit={handleSaveGasto} className="modal-form">
                 <div className="form-group"><label htmlFor="gastoMonto">Monto:</label><input type="text" id="gastoMonto" name="monto" value={gastoForm.monto} onChange={handleGastoFormChange} required /></div>
                 <div className="form-group"><label htmlFor="gastoComprobante">Nº Comprobante/Referencia:</label><input type="text" id="gastoComprobante" name="comprobante" value={gastoForm.comprobante} onChange={handleGastoFormChange} required/></div>
-                <div className="form-group"><label htmlFor="gastoMotivo">Motivo/Descripción del Gasto (máx. 100 caracteres):</label><textarea id="gastoMotivo" maxLength={50} name="motivo" value={gastoForm.motivo} onChange={handleGastoFormChange} rows="3" required /></div>
+                <div className="form-group"><label htmlFor="gastoMotivo">Motivo/Descripción del Gasto:</label><textarea id="gastoMotivo" maxLength={50} name="motivo" value={gastoForm.motivo} onChange={handleGastoFormChange} rows="3" required /></div>
                 <button type="submit" className="modal-submit-button" disabled={isSubmitting || isSavingDraft}>Guardar Gasto</button>
             </form>
            </div>
@@ -1021,10 +1083,10 @@ function RectificarPage() {
                     <div className="form-group">
                         <label htmlFor="boletaEstadoBoleta">
                             Estado Boleta:
-                            { (diferenciaBrutaSinBoletas + efectoNetoBoletas) !== 0  
-                                /*<span style={{fontSize: '0.85em', display: 'block', color: '#666'}}>
+                            { (diferenciaBrutaSinBoletas + efectoNetoBoletas) !== 0 && 
+                                <span style={{fontSize: '0.85em', display: 'block', color: '#666'}}>
                                     Diferencia actual (previo a esta boleta): {formatCurrency(diferenciaBrutaSinBoletas + efectoNetoBoletas)}
-                                </span>*/
+                                </span>
                             }
                         </label>
                         <select id="boletaEstadoBoleta" name="estadoBoleta" value={boletaForm.estadoBoleta} onChange={handleBoletaFormChange}>
@@ -1055,7 +1117,7 @@ function RectificarPage() {
                                     <th>Motivo</th>
                                     <th style={{width: '100px'}}>Tipo</th>
                                     <th style={{width: '130px'}}>Monto</th>
-                                    {isFormEditableByAdmin && <th>Acción</th>}
+                                    {finalIsFormEditable && <th>Acción</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -1065,7 +1127,7 @@ function RectificarPage() {
                                         <td className="vj-cell-motivo" title={j.motivo}>{j.motivo}</td>
                                         <td className="vj-cell-tipo">{j.tipo === 'sobrante' ? 'Sobrante' : 'Faltante'}</td>
                                         <td className="vj-cell-monto">{formatCurrency(j.monto)}</td>
-                                        {isFormEditableByAdmin && (
+                                        {finalIsFormEditable && (
                                           <td>
                                             <button
                                               className="action-icon-button delete"

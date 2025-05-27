@@ -1,3 +1,7 @@
+// Página de ingreso de stock y fecha de vencimiento.
+// Permite buscar productos por código de barras, mostrar detalles y registrar una entrada de stock con cantidad y vencimiento.
+// Valida los datos ingresados y guarda la entrada en Firebase bajo el local del usuario.
+// Muestra mensajes de éxito o error según el resultado de la operación.
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -7,8 +11,11 @@ import { ref, get, push, serverTimestamp } from 'firebase/database';
 const DEBOUNCE_DELAY = 500;
 
 function StockEntryPage() {
+    // Obtiene usuario y local asignado desde el contexto
     const { currentUser, userStoreId } = useAuth();
+    // Hook para navegación programática
     const navigate = useNavigate();
+    // Estados para los campos del formulario y control de errores/carga
     const [barcodeInput, setBarcodeInput] = useState('');
     const [isLoadingProduct, setIsLoadingProduct] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,6 +33,7 @@ function StockEntryPage() {
     const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
+    // Busca el producto por código de barras en Firebase
     const performSearch = useCallback(async (barcodeToSearch) => {
         if (!barcodeToSearch) return;
         setProductData(null); setProductId(null); setError(''); setSuccessMessage('');
@@ -52,6 +60,7 @@ function StockEntryPage() {
         }
     }, [database]);
 
+    // Efecto para buscar producto con debounce al escribir el código de barras
     useEffect(() => {
         const trimmedBarcode = barcodeInput.trim();
         if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
@@ -63,20 +72,24 @@ function StockEntryPage() {
         return () => { if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current); };
     }, [barcodeInput, performSearch]);
 
+    // Enfoca el input de código de barras cuando no hay producto cargado
     useEffect(() => {
         if (barcodeInputRef.current && !productData) barcodeInputRef.current.focus();
     }, [productData]);
 
+    // Enfoca el input al montar el componente
     useEffect(() => {
         if (barcodeInputRef.current) barcodeInputRef.current.focus();
     }, []);
 
+    // Limpia el formulario y mensajes
     const handleClearForm = () => {
         setBarcodeInput(''); setProductData(null); setProductId(null); setError('');
         setSuccessMessage(''); setQuantity(''); setExpiryMonth(''); setExpiryYear('');
         if (barcodeInputRef.current) setTimeout(() => barcodeInputRef.current.focus(), 0);
     };
 
+    // Maneja el envío del formulario de ingreso de stock
     const handleSubmitEntry = async (e) => {
         e.preventDefault();
         setError(''); setSuccessMessage('');

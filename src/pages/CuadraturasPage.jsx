@@ -1,13 +1,16 @@
+// Importaciones principales de React y librerías necesarias
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { database } from '../firebase/firebaseConfig';
-import { ref, get } from "firebase/database";
+import { useNavigate } from 'react-router-dom'; // Para navegación entre páginas
+import { useAuth } from '../context/AuthContext'; // Contexto de autenticación de usuario
+import { database } from '../firebase/firebaseConfig'; // Configuración de Firebase
+import { ref, get } from "firebase/database"; // Métodos de Firebase para obtener datos
 
+// Variables de entorno para la configuración de la API de Odoo.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_ENDPOINT = `${API_BASE_URL}/odoo`;
 const BEARER_TOKEN = import.meta.env.VITE_API_BEARER_TOKEN;
 
+// Función para llamar a la API de Odoo.
 async function callOdooApi(apiUrl, requestData) {
   const headers = {
     'Content-Type': 'application/json',
@@ -25,7 +28,7 @@ async function callOdooApi(apiUrl, requestData) {
       try {
         const errorData = await response.json();
         errorMsg = errorData.message || errorData.error || errorMsg;
-      } catch (e) { }
+      } catch (e) { /* Ignora error de parseo JSON */ }
       throw new Error(errorMsg);
     }
     return await response.json();
@@ -35,6 +38,7 @@ async function callOdooApi(apiUrl, requestData) {
   }
 }
 
+// Función para obtener las sesiones de punto de venta (POS) desde Odoo.
 async function fetchPosSessions(apiUrl, startDate, endDate) {
   const requestData = {
     model: "pos.session",
@@ -51,6 +55,7 @@ async function fetchPosSessions(apiUrl, startDate, endDate) {
   return await callOdooApi(apiUrl, requestData);
 }
 
+// Utilidad para formatear fechas y horas.
 const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return 'N/A';
     try {
@@ -59,6 +64,7 @@ const formatDateTime = (dateTimeString) => {
     } catch (e) { return dateTimeString; }
 };
 
+// Utilidad para formatear montos en moneda chilena.
 const formatCurrency = (amount) => {
     if (amount === undefined || amount === null) return 'N/A';
     const numAmount = Number(amount);
@@ -68,9 +74,21 @@ const formatCurrency = (amount) => {
 
 const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
+// Función para formatear el texto del estado de rectificación.
+const formatStatusText = (status) => {
+  if (!status) return '';
+  return status
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Componente principal de la página de Cuadraturas.
 function CuadraturasPage() {
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
+  
   const [hierarchicalData, setHierarchicalData] = useState([]);
   const [activeDayKey, setActiveDayKey] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,19 +96,22 @@ function CuadraturasPage() {
   const [openStores, setOpenStores] = useState({});
   const [openMonths, setOpenMonths] = useState({});
   const [filterStatus, setFilterStatus] = useState('');
+  
   const calculatedPageMaxWidth = '1300px';
 
+  // Devuelve el color para las opciones del filtro de estado.
   const getOptionColor = (statusValue) => {
     switch (statusValue) {
         case 'aprobada': return '#198754';
         case 'rechazada': return '#dc3545';
         case 'pendiente': return '#ffc107';
         case 'sin_rectificar': return '#6c757d';
-        case '': 
-        default: return '#212529'; 
+        case 'borrador': return '#0d6efd'; 
+        case '': default: return '#212529';
     }
   };
 
+  // Carga y procesa los datos de cuadraturas.
   const loadAndProcessCuadraturas = useCallback(async (showLoadingIndicator = true) => {
     if(showLoadingIndicator) setIsLoading(true);
     setApiError(null);
@@ -119,6 +140,10 @@ function CuadraturasPage() {
       const rectificationSnapshot = await get(rectificationRequestsRef);
       const rectificationData = rectificationSnapshot.exists() ? rectificationSnapshot.val() : {};
       
+      // Para el modelo de borradores por usuario, no cargamos todos los borradores aquí para el admin.
+      // Solo el superadmin podría hacerlo si tuviera una vista global de borradores (no implementado actualmente).
+      // Cada admin verificará su propio borrador por sesión.
+      
       const rectificationStatusBySessionId = {};
       Object.entries(rectificationData).forEach(([reqId, req]) => {
         if (req.sessionId) {
@@ -128,17 +153,38 @@ function CuadraturasPage() {
         }
       });
 
-      const sessionsWithRectificationStatus = sessionsFromApi.map(session => {
+      // Procesar cada sesión para enriquecerla con información de rectificación y si el admin actual tiene un borrador.
+      const sessionsWithFullStatusPromises = sessionsFromApi.map(async (session) => {
         const rectificationInfo = rectificationStatusBySessionId[session.id];
+        let hasDraft = false; // Flag: ¿Existe un borrador colaborativo para esta sesión?
+
+        // Si la sesión no tiene rectificación formal enviada, verifica si existe un borrador colaborativo para ESTA sesión.
+        if (!rectificationInfo || rectificationInfo.status === 'sin_rectificar') {
+          try {
+            // Ruta al borrador colaborativo de la sesión (sin importar usuario).
+            const draftRef = ref(database, `rectificationDrafts/${session.id}`);
+            const draftSnap = await get(draftRef);
+            if (draftSnap.exists()) {
+              hasDraft = true;
+            }
+          } catch (e) {
+            console.warn(`No se pudo verificar el borrador colaborativo para sesión ${session.id}:`, e.message);
+          }
+        }
+
         return {
           ...session,
           rectificationStatus: rectificationInfo ? rectificationInfo.status : 'sin_rectificar',
           rectificationRequestId: rectificationInfo ? rectificationInfo.requestId : null,
           rectificationRequestDetails: rectificationInfo ? rectificationInfo.requestData : null,
+          // 'hasDraft' ahora indica si existe un borrador colaborativo para la sesión.
+          hasDraft,
         };
       });
 
-      const sessionsByStoreMonthDay = sessionsWithRectificationStatus.reduce((acc, session) => {
+      const sessionsWithFullStatus = await Promise.all(sessionsWithFullStatusPromises);
+      
+      const sessionsByStoreMonthDay = sessionsWithFullStatus.reduce((acc, session) => {
         const storeName = Array.isArray(session.crm_team_id) && session.crm_team_id.length > 1
                             ? session.crm_team_id[1]
                             : 'Local Desconocido';
@@ -149,6 +195,7 @@ function CuadraturasPage() {
         const day = String(sessionStartDate.getDate()).padStart(2, '0');
         const monthKey = `${year}-${String(monthNum + 1).padStart(2, '0')}`;
         const dayKey = `${day}`;
+        
         if (!acc[storeName]) acc[storeName] = {};
         if (!acc[storeName][monthKey]) acc[storeName][monthKey] = { monthDisplay: `${monthNames[monthNum]} ${year}`, days: {} };
         if (!acc[storeName][monthKey].days[dayKey]) acc[storeName][monthKey].days[dayKey] = [];
@@ -186,28 +233,37 @@ function CuadraturasPage() {
     } finally {
       if(showLoadingIndicator) setIsLoading(false);
     }
-  }, []);
+  }, [currentUser, userRole]); 
 
   useEffect(() => {
     loadAndProcessCuadraturas();
   }, [loadAndProcessCuadraturas]);
 
   const filteredHierarchicalData = useMemo(() => {
-    if (!filterStatus) {
+    if (!filterStatus) { 
         return hierarchicalData;
     }
     return hierarchicalData.map(storeData => {
         const filteredMonths = storeData.months.map(monthData => {
             const filteredDays = monthData.days.map(dayData => {
-                const sessions = dayData.sessions.filter(session => session.rectificationStatus === filterStatus);
+                let sessions;
+                if (filterStatus === 'borrador') {
+                    // Para el filtro "Borrador", se muestran sesiones 'sin_rectificar'
+                    // donde existe un borrador colaborativo (session.hasDraft es true).
+                    sessions = dayData.sessions.filter(session => 
+                        session.rectificationStatus === 'sin_rectificar' && session.hasDraft
+                    );
+                } else {
+                    sessions = dayData.sessions.filter(session => session.rectificationStatus === filterStatus);
+                }
                 return { ...dayData, sessions };
-            }).filter(dayData => dayData.sessions.length > 0);
+            }).filter(dayData => dayData.sessions.length > 0); 
 
             return { ...monthData, days: filteredDays };
-        }).filter(monthData => monthData.days.length > 0);
+        }).filter(monthData => monthData.days.length > 0); 
 
         return { ...storeData, months: filteredMonths };
-    }).filter(storeData => storeData.months.length > 0);
+    }).filter(storeData => storeData.months.length > 0); 
   }, [hierarchicalData, filterStatus]);
 
   const handleStoreToggle = (e, storeName) => {
@@ -226,26 +282,37 @@ function CuadraturasPage() {
     setActiveDayKey(prevKey => prevKey === currentDayKey ? null : currentDayKey);
   };
   
+  // Navega a la página de Rectificación para la sesión seleccionada.
   const handleRectifySession = (session) => {
     if (!session || session.id === undefined) {
-        console.error("No se pudo cargar la información de la sesión para rectificar.");
-        setApiError("No se pudo cargar la información de la sesión para rectificar.");
-        return;
+      console.error("No se pudo cargar la información de la sesión para rectificar.");
+      setApiError("No se pudo cargar la información de la sesión para rectificar.");
+      return;
     }
 
     let initialMode = 'view_only';
-    if (session.rectificationStatus === 'sin_rectificar' && (userRole === 'admin' || userRole === 'superadmin')) {
-      initialMode = 'create';
+    let viewDraft = false;
+
+    if (session.rectificationStatus === 'sin_rectificar') {
+      if (userRole === 'admin') {
+        initialMode = 'create';
+      } else if (userRole === 'superadmin') {
+        // Si hay borrador, el superadmin puede ver el borrador colaborativo
+        if (session.hasDraft) {
+          viewDraft = true;
+        }
+        initialMode = 'view_only';
+      }
     } else if (session.rectificationStatus === 'pendiente' && userRole === 'superadmin') {
       initialMode = 'review';
     }
-    
-    const sessionId = session.id;
-    navigate(`/rectificar/${sessionId}`, {
+
+    navigate(`/rectificar/${session.id}`, {
       state: {
         sessionInitialData: session,
         mode: initialMode,
-        existingRequestId: session.rectificationRequestId || null
+        existingRequestId: session.rectificationRequestId || null,
+        viewDraft: viewDraft
       }
     });
   };
@@ -266,10 +333,21 @@ function CuadraturasPage() {
 
   const canUserInteractWithRectification = (session) => {
     if (!currentUser) return false;
-    if (userRole === 'superadmin') return true;
-    if (userRole === 'admin' && (session.rectificationStatus === 'sin_rectificar' || 
-        (session.rectificationRequestDetails && session.rectificationRequestDetails.submittedByUid === currentUser.uid && session.rectificationStatus === 'pendiente')
-       )) return true;
+    // Superadmin puede interactuar con solicitudes enviadas o ver sesiones sin rectificar.
+    if (userRole === 'superadmin') {
+        return session.rectificationStatus !== 'sin_rectificar' || !session.hasDraft; // Pueden ver sin_rectificar si no hay borrador, o los estados enviados.
+    }
+    
+    if (userRole === 'admin') {
+      // Admin puede interactuar si la sesión está 'sin_rectificar' (para crear o continuar su borrador).
+      if (session.rectificationStatus === 'sin_rectificar') {
+        return true; 
+      }
+      // Admin puede interactuar con una solicitud 'pendiente' si él la envió.
+      if (session.rectificationStatus === 'pendiente' && session.rectificationRequestDetails?.submittedByUid === currentUser.uid) {
+        return true; 
+      }
+    }
     return false;
   };
 
@@ -311,6 +389,7 @@ function CuadraturasPage() {
                 <option value="aprobada" style={{ color: getOptionColor('aprobada') }}>✓ Aprobadas</option>
                 <option value="rechazada" style={{ color: getOptionColor('rechazada') }}>⊗ Rechazadas</option>
                 <option value="pendiente" style={{ color: getOptionColor('pendiente') }}>… Pendientes</option>
+                <option value="borrador" style={{ color: getOptionColor('borrador') }}>✎ Borradores</option> 
                 <option value="sin_rectificar" style={{ color: getOptionColor('sin_rectificar') }}>○ Sin Rectificar</option>
             </select>
         </div>
@@ -324,7 +403,12 @@ function CuadraturasPage() {
                     <p style={{padding: '20px'}}>No se encontraron sesiones para el rango de fechas seleccionado.</p>
                 )}
                 {hierarchicalData.length > 0 && filteredHierarchicalData.length === 0 && filterStatus !== '' && (
-                    <p style={{padding: '20px'}}>No hay sesiones con el estado "{filterStatus.replace(/_/g, ' ')}".</p>
+                    <p style={{padding: '20px'}}>
+                        {filterStatus === 'borrador' 
+                            ? "No tiene borradores guardados para sesiones sin rectificar." 
+                            : `No hay sesiones con el estado "${formatStatusText(filterStatus)}".`
+                        }
+                    </p>
                 )}
             </>
         )}
@@ -343,13 +427,25 @@ function CuadraturasPage() {
                         {monthData.days.map(dayData => {
                           const currentDayKey = `${storeData.storeName}-${monthData.monthKey}-${dayData.dayDisplay}`;
                           const isActive = activeDayKey === currentDayKey;
+                          
+                          const dayTextSuffixParts = [];
+                          if (dayData.sessions.length > 0) {
+                            dayTextSuffixParts.push(`${dayData.sessions.length} ses.`);
+                            // Para el modelo por usuario, hasDraft ahora indica si el admin actual tiene un borrador.
+                          const draftsInDayCount = dayData.sessions.filter(s => s.hasDraft && s.rectificationStatus === 'sin_rectificar').length;
+                          if (draftsInDayCount > 0) {
+                            dayTextSuffixParts.push(`${draftsInDayCount} con borrador`);
+                          }
+                          }
+                          const dayTextSuffix = dayTextSuffixParts.length > 0 ? ` (${dayTextSuffixParts.join(', ')})` : '';
+
                           return (
                             <React.Fragment key={dayData.dayDisplay}>
                               <li
                                 className={`day-list-item ${isActive ? 'active' : ''}`}
                                 onClick={() => handleDayClick(storeData.storeName, monthData.monthKey, dayData.dayDisplay)}
                               >
-                                <span>Día {dayData.dayDisplay} ({dayData.sessions.length} ses.)</span>
+                                <span>Día {dayData.dayDisplay}{dayTextSuffix}</span>
                                 <span className="day-item-indicator material-symbols-outlined">
                                   {isActive ? 'expand_less' : 'expand_more'}
                                 </span>
@@ -366,7 +462,6 @@ function CuadraturasPage() {
                                             <th>Cierre</th>
                                             <th>Saldo Inicial</th>
                                             <th>Efectivo Contado</th>
-                                            <th>Diferencia</th>
                                             <th>Estado Rectificación</th>
                                           </tr>
                                         </thead>
@@ -376,21 +471,37 @@ function CuadraturasPage() {
                                               <td>{Array.isArray(session.user_id) ? session.user_id[1] : 'N/A'}</td>
                                               <td>{formatDateTime(session.start_at)}</td>
                                               <td>{formatDateTime(session.stop_at)}</td>
-                                              <td className="currency">{formatCurrency(session.cash_register_balance_start)}</td>
-                                              <td className="currency">{formatCurrency(session.cash_register_balance_end_real)}</td>
+                                              <td className="currency" style={{color: '#000000'}}>{formatCurrency(session.cash_register_balance_start)}</td>
+                                              <td className="currency" style={{color: '#000000'}}>{formatCurrency(session.cash_register_balance_end_real)}</td>
                                               <td
-                                                className={`currency difference-cell ${session.rectificationStatus !== 'sin_rectificar' ? `status-${session.rectificationStatus}-text` : ''} ${canUserInteractWithRectification(session) ? 'clickable' : 'not-clickable'}`}
-                                                onClick={() => canUserInteractWithRectification(session) && handleRectifySession(session)}
-                                                title={canUserInteractWithRectification(session) ? (session.rectificationStatus === 'sin_rectificar' ? "Crear Solicitud de Rectificación" : "Ver/Gestionar Solicitud") : "Rectificación no disponible"}
-                                              >
-                                                {formatCurrency(session.cash_register_difference)}
-                                              </td>
-                                              <td className={`status-cell ${canUserInteractWithRectification(session) ? 'clickable' : 'not-clickable'}`}
-                                                  onClick={() => canUserInteractWithRectification(session) && handleRectifySession(session)}
-                                                  title={canUserInteractWithRectification(session) ? (session.rectificationStatus === 'sin_rectificar' ? "Crear Solicitud de Rectificación" : "Ver/Gestionar Solicitud") : "Rectificación no disponible"}
+                                                className={`status-cell ${
+                                                  (canUserInteractWithRectification(session) || (userRole === 'superadmin' && session.rectificationStatus === 'sin_rectificar' && session.hasDraft))
+                                                    ? 'clickable'
+                                                    : 'not-clickable'
+                                                }`}
+                                                onClick={() => {
+                                                  if (canUserInteractWithRectification(session) || (userRole === 'superadmin' && session.rectificationStatus === 'sin_rectificar' && session.hasDraft)) {
+                                                    handleRectifySession(session);
+                                                  }
+                                                }}
+                                                title={
+                                                  canUserInteractWithRectification(session)
+                                                    ? (session.rectificationStatus === 'sin_rectificar'
+                                                        ? (session.hasDraft && userRole === 'admin'
+                                                            ? 'Continuar Mi Borrador'
+                                                            : (session.hasDraft && userRole === 'superadmin'
+                                                                ? 'Ver Borrador Colaborativo'
+                                                                : 'Crear Solicitud de Rectificación'))
+                                                        : 'Ver/Gestionar Solicitud')
+                                                    : (userRole === 'superadmin' && session.rectificationStatus === 'sin_rectificar' && session.hasDraft
+                                                        ? 'Ver Borrador Colaborativo'
+                                                        : 'Rectificación no disponible')
+                                                }
                                               >
                                                 {getStatusIcon(session.rectificationStatus)}
-                                                <span className="status-text"> {session.rectificationStatus.replace(/_/g, ' ')}</span>
+                                                <span className="status-text"> {formatStatusText(session.rectificationStatus)}
+                                                  {session.rectificationStatus === 'sin_rectificar' && session.hasDraft && ' (B)'}
+                                                </span>
                                               </td>
                                             </tr>
                                           ))}

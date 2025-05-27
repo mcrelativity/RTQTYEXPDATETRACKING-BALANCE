@@ -1,15 +1,21 @@
+// Página de inicio de sesión.
+// Permite a un usuario autenticarse con email y contraseña.
+// Muestra mensajes de error si las credenciales son incorrectas o hay problemas de autenticación.
+// Al iniciar sesión correctamente, redirige al usuario a la página principal (Home).
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from '../firebase/firebaseConfig';
 
 function LoginPage() {
+  // Estados para los campos del formulario y control de errores/carga
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Maneja el inicio de sesión del usuario
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');

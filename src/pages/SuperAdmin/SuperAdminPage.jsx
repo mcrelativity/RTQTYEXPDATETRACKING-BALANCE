@@ -1,6 +1,10 @@
+// Página principal del panel Superadministrador.
+// Permite acceder a la gestión de usuarios y al inventario global.
+// Solo accesible para usuarios con rol superadmin.
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+// Renderiza botones de acceso a las funciones de superadmin
 function SuperAdminPage() {
     return (
         <div className="page-container" style={{maxWidth: '600px'}}>

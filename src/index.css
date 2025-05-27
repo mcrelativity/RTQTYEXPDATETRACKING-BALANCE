@@ -728,7 +728,7 @@ a { text-decoration: none; color: inherit; }
   transition: background-color 0.2s ease;
 }
 .sessions-table td.status-cell.clickable { cursor: pointer; }
-.sessions-table td.status-cell.clickable:hover { background-color: #f0f0f0; }
+.sessions-table td.status-cell.clickable:hover { background-color: #e1dfdf; } /*hover x defecto era #f0f0f0 */
 
 .status-icon { font-size: 1.3em; }
 .status-icon.accepted { color: var(--color-success); }

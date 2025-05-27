@@ -1,3 +1,8 @@
+// Página de administración de inventario y stock (solo para admin y superadmin).
+// Permite ver, filtrar, buscar y exportar el stock de todos los locales.
+// Carga datos de productos, locales, stock y ROPs desde Firebase.
+// Permite seleccionar mes y año, buscar productos, y exportar a Excel.
+// Muestra mensajes de error y control de acceso según el rol.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,8 +11,11 @@ import { ref, get } from 'firebase/database';
 import * as XLSX from 'xlsx';
 
 function AdminPage() {
+    // Obtiene datos del usuario autenticado
     const { userData } = useAuth();
+    // Hook para navegación programática
     const navigate = useNavigate();
+    // Estados para datos cargados, filtros, errores y selección
     const [allStockData, setAllStockData] = useState(null);
     const [storesData, setStoresData] = useState({});
     const [productsData, setProductsData] = useState(null);
@@ -30,16 +38,19 @@ function AdminPage() {
     const displayMonthName = monthNames[selectedMonth];
     const pageTitle = `Panel Administración - Stock y F.D.V ${displayMonthName} ${selectedYear}`;
 
+    // Formatea un timestamp a fecha legible
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return 'N/A';
         try { return new Date(timestamp).toLocaleString('es-CL'); }
         catch (e) { return 'Fecha inválida'; }
     };
 
+    // Enfoca el input de búsqueda al montar el componente
     useEffect(() => {
         if (searchInputRef.current) searchInputRef.current.focus();
     }, []);
 
+    // Carga datos de Firebase al montar o cambiar usuario
     useEffect(() => {
         if (!userData || (userData.role !== 'admin' && userData.role !== 'superadmin')) {
             setError('Acceso denegado.'); setLoading(false); return;

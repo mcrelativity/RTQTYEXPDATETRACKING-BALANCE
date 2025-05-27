@@ -1,3 +1,7 @@
+// Página de registro de usuario.
+// Permite a un nuevo usuario crear una cuenta con email y contraseña.
+// Valida que las contraseñas coincidan y maneja errores comunes de registro.
+// Al registrarse exitosamente, guarda el usuario en Firebase y lo redirige al login.
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -5,6 +9,7 @@ import { ref, set } from "firebase/database";
 import { auth, database } from '../firebase/firebaseConfig';
 
 function SignUpPage() {
+  // Estados para los campos del formulario y control de errores/carga
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -12,6 +17,7 @@ function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Maneja el registro del usuario
   const handleSignUp = async (e) => {
     e.preventDefault();
     setError('');
