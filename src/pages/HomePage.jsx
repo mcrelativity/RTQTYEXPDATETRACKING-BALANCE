@@ -8,7 +8,7 @@ function HomePage() {
 
   const isAdminOrSuperAdmin = userData?.role === 'admin' || userData?.role === 'superadmin';
 
-  const calculatedMaxWidth = isAdminOrSuperAdmin ? '600px' : '500px';
+  const calculatedMaxWidth = isAdminOrSuperAdmin ? '600px' : '450px';
 
   return (
     <div className="page-container" style={{ marginTop: '20px', maxWidth: calculatedMaxWidth }}>

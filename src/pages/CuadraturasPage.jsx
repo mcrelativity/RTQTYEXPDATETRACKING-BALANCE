@@ -1,3 +1,10 @@
+// Página de Cuadraturas por Local
+// ---------------------------------------------
+// Este componente muestra la vista jerárquica de sesiones POS agrupadas por local, mes y día.
+// Permite a administradores y superadministradores visualizar, filtrar y navegar a la rectificación de cada sesión.
+// Incluye lógica para cargar datos desde Odoo y Firebase, filtrar por estado, y gestionar la navegación a la página de rectificación.
+// Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
+
 // Importaciones principales de React y librerías necesarias
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom'; // Para navegación entre páginas
@@ -5,12 +12,12 @@ import { useAuth } from '../context/AuthContext'; // Contexto de autenticación 
 import { database } from '../firebase/firebaseConfig'; // Configuración de Firebase
 import { ref, get } from "firebase/database"; // Métodos de Firebase para obtener datos
 
-// Variables de entorno para la configuración de la API de Odoo.
+// --- Variables de entorno para la configuración de la API de Odoo ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_ENDPOINT = `${API_BASE_URL}/odoo`;
 const BEARER_TOKEN = import.meta.env.VITE_API_BEARER_TOKEN;
 
-// Función para llamar a la API de Odoo.
+// --- Función para llamar a la API de Odoo ---
 async function callOdooApi(apiUrl, requestData) {
   const headers = {
     'Content-Type': 'application/json',
@@ -38,7 +45,7 @@ async function callOdooApi(apiUrl, requestData) {
   }
 }
 
-// Función para obtener las sesiones de punto de venta (POS) desde Odoo.
+// --- Función para obtener las sesiones de punto de venta (POS) desde Odoo ---
 async function fetchPosSessions(apiUrl, startDate, endDate) {
   const requestData = {
     model: "pos.session",
@@ -55,7 +62,7 @@ async function fetchPosSessions(apiUrl, startDate, endDate) {
   return await callOdooApi(apiUrl, requestData);
 }
 
-// Utilidad para formatear fechas y horas.
+// --- Utilidad para formatear fechas y horas ---
 const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return 'N/A';
     try {
@@ -64,7 +71,7 @@ const formatDateTime = (dateTimeString) => {
     } catch (e) { return dateTimeString; }
 };
 
-// Utilidad para formatear montos en moneda chilena.
+// --- Utilidad para formatear montos en moneda chilena ---
 const formatCurrency = (amount) => {
     if (amount === undefined || amount === null) return 'N/A';
     const numAmount = Number(amount);
@@ -74,7 +81,7 @@ const formatCurrency = (amount) => {
 
 const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-// Función para formatear el texto del estado de rectificación.
+// --- Función para formatear el texto del estado de rectificación ---
 const formatStatusText = (status) => {
   if (!status) return '';
   return status
@@ -84,7 +91,9 @@ const formatStatusText = (status) => {
     .join(' ');
 };
 
-// Componente principal de la página de Cuadraturas.
+// --- Componente principal de la página de Cuadraturas ---
+// Gestiona la carga, agrupación, filtrado y visualización de sesiones POS por local, mes y día.
+// Permite navegar a la página de rectificación según el estado y rol del usuario.
 function CuadraturasPage() {
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
@@ -99,7 +108,7 @@ function CuadraturasPage() {
   
   const calculatedPageMaxWidth = '1300px';
 
-  // Devuelve el color para las opciones del filtro de estado.
+  // --- Devuelve el color para las opciones del filtro de estado ---
   const getOptionColor = (statusValue) => {
     switch (statusValue) {
         case 'aprobada': return '#198754';
@@ -111,7 +120,7 @@ function CuadraturasPage() {
     }
   };
 
-  // Carga y procesa los datos de cuadraturas.
+  // --- Carga y procesa los datos de cuadraturas ---
   const loadAndProcessCuadraturas = useCallback(async (showLoadingIndicator = true) => {
     if(showLoadingIndicator) setIsLoading(true);
     setApiError(null);
@@ -235,10 +244,12 @@ function CuadraturasPage() {
     }
   }, [currentUser, userRole]); 
 
+  // --- useEffect para cargar los datos al montar el componente ---
   useEffect(() => {
     loadAndProcessCuadraturas();
   }, [loadAndProcessCuadraturas]);
 
+  // --- Memo para filtrar los datos jerárquicos según el estado seleccionado ---
   const filteredHierarchicalData = useMemo(() => {
     if (!filterStatus) { 
         return hierarchicalData;
@@ -266,23 +277,26 @@ function CuadraturasPage() {
     }).filter(storeData => storeData.months.length > 0); 
   }, [hierarchicalData, filterStatus]);
 
+  // --- Maneja la apertura/cierre de la vista de un local ---
   const handleStoreToggle = (e, storeName) => {
     e.preventDefault();
     setOpenStores(prev => ({ ...prev, [storeName]: !prev[storeName] }));
   };
 
+  // --- Maneja la apertura/cierre de la vista de un mes dentro de un local ---
   const handleMonthToggle = (e, storeName, monthKey) => {
     e.preventDefault();
     const combinedKey = `${storeName}-${monthKey}`;
     setOpenMonths(prev => ({ ...prev, [combinedKey]: !prev[combinedKey] }));
   };
 
+  // --- Maneja la selección de un día específico para mostrar sus sesiones ---
   const handleDayClick = (storeName, monthKey, dayDisplay) => {
     const currentDayKey = `${storeName}-${monthKey}-${dayDisplay}`;
     setActiveDayKey(prevKey => prevKey === currentDayKey ? null : currentDayKey);
   };
   
-  // Navega a la página de Rectificación para la sesión seleccionada.
+  // --- Navega a la página de Rectificación para la sesión seleccionada ---
   const handleRectifySession = (session) => {
     if (!session || session.id === undefined) {
       console.error("No se pudo cargar la información de la sesión para rectificar.");
@@ -317,6 +331,7 @@ function CuadraturasPage() {
     });
   };
   
+  // --- Devuelve el ícono visual para el estado de rectificación de la sesión ---
   const getStatusIcon = (status) => {
     switch (status) {
       case 'aprobada':
@@ -331,6 +346,7 @@ function CuadraturasPage() {
     }
   };
 
+  // --- Determina si el usuario puede interactuar con la rectificación de una sesión ---
   const canUserInteractWithRectification = (session) => {
     if (!currentUser) return false;
     // Superadmin puede interactuar con solicitudes enviadas o ver sesiones sin rectificar.
@@ -351,11 +367,13 @@ function CuadraturasPage() {
     return false;
   };
 
+  // --- Maneja el cambio de filtro de estado en la barra de filtros ---
   const handleFilterStatusChange = (event) => {
     const newStatus = event.target.value;
     setFilterStatus(newStatus);
   };
 
+  // --- Renderizado principal de la página de cuadraturas ---
   return (
     <div className="page-container" style={{ maxWidth: calculatedPageMaxWidth }}>
       <div className="cuadraturas-header-container">
@@ -405,7 +423,7 @@ function CuadraturasPage() {
                 {hierarchicalData.length > 0 && filteredHierarchicalData.length === 0 && filterStatus !== '' && (
                     <p style={{padding: '20px'}}>
                         {filterStatus === 'borrador' 
-                            ? "No tiene borradores guardados para sesiones sin rectificar." 
+                            ? "No hay borradores guardados para sesiones sin rectificar." 
                             : `No hay sesiones con el estado "${formatStatusText(filterStatus)}".`
                         }
                     </p>
@@ -457,7 +475,7 @@ function CuadraturasPage() {
                                       <table className="sessions-table">
                                         <thead>
                                           <tr>
-                                            <th>Persona</th>
+                                            <th>Usuario</th>
                                             <th>Apertura</th>
                                             <th>Cierre</th>
                                             <th>Saldo Inicial</th>
@@ -488,13 +506,13 @@ function CuadraturasPage() {
                                                   canUserInteractWithRectification(session)
                                                     ? (session.rectificationStatus === 'sin_rectificar'
                                                         ? (session.hasDraft && userRole === 'admin'
-                                                            ? 'Continuar Mi Borrador'
+                                                            ? 'Continuar Borrador'
                                                             : (session.hasDraft && userRole === 'superadmin'
-                                                                ? 'Ver Borrador Colaborativo'
+                                                                ? 'Ver Borrador'
                                                                 : 'Crear Solicitud de Rectificación'))
                                                         : 'Ver/Gestionar Solicitud')
                                                     : (userRole === 'superadmin' && session.rectificationStatus === 'sin_rectificar' && session.hasDraft
-                                                        ? 'Ver Borrador Colaborativo'
+                                                        ? 'Ver Borrador'
                                                         : 'Rectificación no disponible')
                                                 }
                                               >

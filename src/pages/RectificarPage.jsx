@@ -1,10 +1,44 @@
+  // --- Manejo de cambios en los inputs de monto (parseo y actualización de estado) ---
+  // --- Manejo de cambios en el formulario principal ---
+  // Actualiza el estado del formulario principal según el input del usuario.
+  // --- Manejo de cambios en los detalles de pago (inputs de monto físico por método de pago) ---
+  // --- Abrir modal para agregar justificación a un método de pago ---
+  // --- Manejo de cambios en el formulario de justificación de ítem ---
+  // --- Guardar justificación de ítem en el estado correspondiente ---
+  // --- Abrir modal para agregar un gasto rendido ---
+  // --- Manejo de cambios en el formulario de gasto ---
+  // --- Guardar gasto rendido en el estado correspondiente ---
+  // --- Abrir modal para agregar una boleta pendiente/rectificada ---
+  // --- Manejo de cambios en el formulario de boleta ---
+  // --- Guardar boleta ingresada en el estado correspondiente ---
+  // --- Iniciar proceso de envío de solicitud de rectificación (abre modal de confirmación) ---
+  // --- Enviar solicitud de rectificación a Firebase ---
+  // --- Acción de aprobación/rechazo por parte del superadministrador ---
+  // --- Abrir modal para ver justificaciones de un método de pago ---
+  // --- Flags de permisos y edición de formulario ---
+  // Determina si el formulario es editable por un admin (en modo creación).
+  // Determina si un superadmin puede tomar una decisión sobre una solicitud pendiente.
+  // --- Cálculo de montos y diferencias para mostrar en la UI ---
+  // Calcula el monto de efectivo físico a mostrar, considerando el modo y rol.
+  // --- Genera el título de la página dinámicamente según el contexto y modo ---
+  // --- Renderizado condicional de estados de carga y error globales ---
+  // --- Variable final para determinar si el formulario debe ser editable ---
+  // Un admin en modo 'create' puede editar.
+  // Un superadmin viendo el borrador de un admin NO puede editar.
+  // --- Condición para mostrar el botón de justificar efectivo ---
+// Página de Rectificación de Caja
+// ---------------------------------------------
+// Este componente permite a los administradores y superadministradores revisar, justificar y rectificar diferencias de caja en sesiones POS.
+// Incluye lógica para cargar datos desde Odoo y Firebase, gestionar formularios, justificaciones, gastos, boletas y flujos de aprobación.
+// Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { database } from '../firebase/firebaseConfig';
 import { ref, push, serverTimestamp, get, update, set } from "firebase/database";
 
-// Configuración de la API y métodos de pago por defecto.
+// --- Configuración de la API y métodos de pago por defecto ---
 // Estas constantes definen cómo la aplicación interactúa con servicios externos y cómo entiende los métodos de pago.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_ENDPOINT = `${API_BASE_URL}/odoo`;
@@ -18,7 +52,7 @@ const DEFAULT_PAYMENT_METHODS_CONFIG = [
   { id: 'planilla', odoo_names: ['Planilla'], display_name: 'Planilla'},
 ];
 
-// Función asíncrona para realizar llamadas a la API de Odoo.
+// --- Función asíncrona para realizar llamadas a la API de Odoo ---
 // Maneja la construcción de la petición POST, incluyendo cabeceras y cuerpo.
 // También gestiona errores básicos de respuesta de la API.
 async function callOdooApi(apiUrl, requestData) {
@@ -35,7 +69,7 @@ async function callOdooApi(apiUrl, requestData) {
   } catch (error) { console.error("Error calling Odoo API:", error); throw error; }
 }
 
-// Función para obtener los datos de pagos de una sesión específica desde Odoo.
+// --- Función para obtener los datos de pagos de una sesión específica desde Odoo ---
 // Utiliza callOdooApi para realizar la petición.
 async function fetchSessionPayments(apiUrl, sessionId) {
   if (sessionId === null || sessionId === undefined) return []; // Retorna array vacío si no hay sessionId.
@@ -47,21 +81,21 @@ async function fetchSessionPayments(apiUrl, sessionId) {
   return await callOdooApi(apiUrl, requestData);
 }
 
-// Función para formatear una cadena de fecha/hora a un formato legible local (es-CL).
+// --- Función para formatear una cadena de fecha/hora a un formato legible local (es-CL) ---
 const formatDateTime = (dateTimeString) => {
   if (!dateTimeString) return 'N/A';
   try { const date = new Date(dateTimeString); return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }); }
   catch (e) { return dateTimeString; }
 };
 
-// Función para formatear un número como moneda chilena (CLP).
+// --- Función para formatear un número como moneda chilena (CLP) ---
 const formatCurrency = (amount) => {
   const numAmount = parseFloat(String(amount).replace(/\./g, '').replace(/,/g, '.'));
   if (isNaN(numAmount)) return 'N/A';
   return numAmount.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-// Función para parsear y limpiar un valor de input de monto, permitiendo un signo negativo al inicio.
+// --- Función para parsear y limpiar un valor de input de monto, permitiendo un signo negativo al inicio ---
 // Elimina puntos y cualquier caracter no numérico (excepto el signo inicial).
 const parseInputAmount = (value) => {
   if (value === null || value === undefined) return '';
@@ -82,7 +116,7 @@ const parseInputAmount = (value) => {
   return sign + number.toString(); 
 };
 
-// Función recursiva para sanitizar un objeto antes de guardarlo en Firebase.
+// --- Función recursiva para sanitizar un objeto antes de guardarlo en Firebase ---
 // Principalmente convierte valores 'undefined' a 'null', ya que Firebase no maneja bien 'undefined'.
 function sanitizeForFirebase(dataObject) {
   if (dataObject === null || typeof dataObject !== 'object') { return dataObject === undefined ? null : dataObject; }
@@ -99,44 +133,47 @@ function sanitizeForFirebase(dataObject) {
   return sanitized;
 }
 
-// Componente principal de la página de Rectificación.
+// --- Componente principal de la página de Rectificación ---
+// Gestiona la lógica de visualización, edición, justificación y envío de solicitudes de rectificación de caja.
+// Incluye manejo de estados, hooks de ciclo de vida, lógica de negocio y renderizado condicional.
 function RectificarPage() {
   const navigate = useNavigate(); // Hook para la navegación programática.
   const location = useLocation(); // Hook para acceder al estado pasado en la navegación.
   const { sessionId } = useParams(); // Hook para obtener el 'sessionId' de los parámetros de la URL.
   const { currentUser, userRole } = useAuth(); // Hook para obtener el usuario actual y su rol.
 
-  // Estados para almacenar datos de la sesión y de la rectificación.
+  // --- Estados principales de la página ---
+  // Almacenan datos de la sesión, modo de la página, detalles de pagos, rectificaciones existentes y formularios.
   const [sessionData, setSessionData] = useState(null); // Datos de la sesión POS de Odoo.
   const [pageMode, setPageMode] = useState('view_only'); // Controla el modo de la página: 'create', 'review', 'view_only'.
   const [paymentDetails, setPaymentDetails] = useState([]); // Array con detalles de medios de pago (no efectivo) y sus montos físicos.
   const [existingRectification, setExistingRectification] = useState(null); // Almacena una rectificación ya enviada si se está revisando o viendo.
   
-  // Estados para los datos del formulario principal.
+  // --- Estados para los datos del formulario principal ---
   const [mainFormData, setMainFormData] = useState({
     nuevoSaldoFinalRealEfectivo: '', // Input para el monto físico de efectivo.
     superAdminMotivoDecision: '' // Input para los comentarios del superadmin.
   });
 
-  // Estados para los datos de justificaciones, gastos y boletas.
+  // --- Estados para los datos de justificaciones, gastos y boletas ---
   const [itemJustifications, setItemJustifications] = useState({}); // Objeto para almacenar justificaciones por método de pago.
   const [gastosRendidos, setGastosRendidos] = useState([]); // Array de gastos rendidos.
   const [boletasPendientes, setBoletasPendientes] = useState([]); // Array de boletas pendientes/rectificadas.
   const [gastosSistemaAPI, setGastosSistemaAPI] = useState(0); // Gastos de la sesión según Odoo.
 
-  // Estados para la UI: carga, errores y mensajes de éxito.
+  // --- Estados para la UI: carga, errores y mensajes de éxito ---
   const [isLoading, setIsLoading] = useState(true); // Indica si la página está cargando datos.
   const [error, setError] = useState(''); // Mensaje de error general.
   const [success, setSuccess] = useState(''); // Mensaje de éxito para envío final.
 
-  // Estados para controlar acciones de envío y guardado de borrador.
+  // --- Estados para controlar acciones de envío y guardado de borrador ---
   const [isSubmitting, setIsSubmitting] = useState(false); // Indica si se está enviando la rectificación.
   const [isSavingDraft, setIsSavingDraft] = useState(false); // Indica si se está guardando un borrador.
   const [draftSavedSuccess, setDraftSavedSuccess] = useState(false); // Feedback: borrador guardado exitosamente.
   const [draftLoadedSuccess, setDraftLoadedSuccess] = useState(false); // Feedback: borrador cargado exitosamente.
   const [showConfirmModal, setShowConfirmModal] = useState(false); // Controla visibilidad del modal de confirmación.
 
-  // Estados para los modales de ingreso de datos (justificaciones, gastos, boletas).
+  // --- Estados para los modales de ingreso de datos (justificaciones, gastos, boletas) ---
   const [isItemJustificationModalOpen, setIsItemJustificationModalOpen] = useState(false);
   const [currentItemForJustification, setCurrentItemForJustification] = useState(null);
   const [itemJustificationForm, setItemJustificationForm] = useState({ monto: '', motivo: '', tipo: 'faltante' });
@@ -150,7 +187,7 @@ function RectificarPage() {
   const [isViewJustificationsModalOpen, setIsViewJustificationsModalOpen] = useState(false);
   const [justificationsToViewInfo, setJustificationsToViewInfo] = useState({ name: '', justifications: [] });
 
-  // Función memoizada para cargar los datos iniciales de la sesión desde Odoo y Firebase.
+  // --- Función memoizada para cargar los datos iniciales de la sesión desde Odoo y Firebase ---
   // Esta función establece los datos base de la sesión, pagos, y cualquier rectificación existente.
   // Es el primer paso en la carga de datos de la página.
   const loadInitialData = useCallback(async (passedSessionData, passedMode, passedReqId, urlSessionIdParam) => {
@@ -244,7 +281,7 @@ function RectificarPage() {
     finally { setIsLoading(false); }
   }, [userRole]); 
   
-  // useEffect para la carga inicial de datos cuando el componente se monta o sessionId/location.state cambian.
+  // --- useEffect para la carga inicial de datos cuando el componente se monta o sessionId/location.state cambian ---
   useEffect(() => {
     const stateFromNavigation = location.state;
     const performInitialLoad = async () => {
@@ -264,63 +301,62 @@ function RectificarPage() {
     }
   }, [sessionId, location.state, loadInitialData]); 
   
-  // useEffect para cargar un borrador guardado, si aplica.
+  // --- useEffect para cargar un borrador guardado, si aplica ---
   // Se ejecuta después de que la carga inicial (isLoading=false) haya terminado
   // y los datos necesarios como sessionData y currentUser estén disponibles.
   useEffect(() => {
-    const stateFromNavigation = location.state; // Accede al estado de la navegación.
+    const stateFromNavigation = location.state;
 
-    // Función interna para encapsular la lógica de carga de borrador.
+    // Función interna para encapsular la lógica de carga de borrador con logs y consistencia.
     const tryLoadRelevantDraft = async () => {
-      // Condiciones básicas para proceder: tener datos de sesión y usuario.
-      if (!sessionData?.id || !currentUser?.uid) return; 
-  
-      let adminIdForDraftLookup = null; // UID del admin cuyo borrador se intentará cargar.
-      let isCurrentUserAdminLoadingDraft = false; // Flag: ¿El admin actual está cargando su propio borrador?
-      let isSuperAdminViewingDraft = false;     // Flag: ¿Un superadmin está viendo el borrador de otro admin?
-  
-      // Escenario 1: El usuario es 'admin', está en modo 'create' y no hay una rectificación enviada.
-      // En este caso, se intenta cargar el borrador del propio admin.
-      // Ahora los borradores son colaborativos: se guarda/carga un solo borrador por sesión.
-      // Cargar el borrador colaborativo si existe y la sesión está sin rectificar.
-      // Para superadmin: solo cargar si viene viewDraft=true en location.state
+      if (!sessionData?.id || !currentUser?.uid) return;
+
       const shouldLoadDraft =
         (!existingRectification && sessionData?.id && userRole === 'admin') ||
         (!existingRectification && sessionData?.id && userRole === 'superadmin' && location.state?.viewDraft);
+
       if (shouldLoadDraft) {
         try {
+          console.log('[RectificarPage] Intentando cargar borrador para sesión:', sessionData.id, 'usuario:', currentUser.uid, 'rol:', userRole);
           const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
-          const snap = await get(draftRef); // Lee el borrador colaborativo de Firebase.
+          const snap = await get(draftRef);
           if (snap.exists()) {
             const loadedDraft = snap.val();
-            setMainFormData({
+            // Validar y aplicar todos los campos del borrador de forma consistente
+            setMainFormData(prev => ({
+              ...prev,
               nuevoSaldoFinalRealEfectivo: loadedDraft.mainFormData?.nuevoSaldoFinalRealEfectivo ?? '',
               superAdminMotivoDecision: ''
-            });
+            }));
             setItemJustifications(loadedDraft.itemJustifications || {});
-            setGastosRendidos(loadedDraft.gastosRendidos || []);
-            setBoletasPendientes(loadedDraft.boletasPendientes || []);
-            // Si el borrador tiene paymentDetails, úsalo completo. Si no, deja el valor anterior.
+            setGastosRendidos(Array.isArray(loadedDraft.gastosRendidos) ? loadedDraft.gastosRendidos : []);
+            setBoletasPendientes(Array.isArray(loadedDraft.boletasPendientes) ? loadedDraft.boletasPendientes : []);
             if (Array.isArray(loadedDraft.paymentDetails) && loadedDraft.paymentDetails.length > 0) {
               setPaymentDetails(loadedDraft.paymentDetails);
+            } else {
+              // Si no hay paymentDetails en el borrador, mantener los actuales
+              console.warn('[RectificarPage] Borrador cargado sin paymentDetails, se mantienen los existentes.');
             }
             setDraftLoadedSuccess(true);
+            console.log('[RectificarPage] Borrador cargado exitosamente:', loadedDraft);
             setTimeout(() => setDraftLoadedSuccess(false), 3000);
+          } else {
+            console.log('[RectificarPage] No existe borrador para la sesión:', sessionData.id);
           }
         } catch (draftError) {
-          console.error(`Error cargando borrador colaborativo:`, draftError);
+          console.error('[RectificarPage] Error cargando borrador colaborativo:', draftError);
         }
+      } else {
+        console.log('[RectificarPage] No corresponde cargar borrador para el estado actual.');
       }
     };
-  
-    // Ejecuta la lógica de carga de borrador solo si la carga inicial ha terminado y los datos necesarios están presentes.
-    if (!isLoading && sessionData && currentUser) { 
+
+    if (!isLoading && sessionData && currentUser) {
       tryLoadRelevantDraft();
     }
-    // Este efecto depende de múltiples estados que cambian durante la inicialización y la interacción.
   }, [isLoading, pageMode, existingRectification, sessionData, currentUser, userRole, location.state]);
 
-  // Guardar el borrador colaborativo (accesible por cualquier admin).
+  // --- Guardar el borrador colaborativo (accesible por cualquier admin) ---
   const handleSaveDraft = async () => {
     if (!sessionData || userRole !== 'admin' || pageMode !== 'create') {
       setError("Solo los administradores pueden guardar borradores en modo creación.");
@@ -355,7 +391,7 @@ function RectificarPage() {
     }
   };
 
-  // Elimina el borrador colaborativo después de enviar la solicitud.
+  // --- Elimina el borrador colaborativo después de enviar la solicitud ---
   const clearDraftAfterSubmit = async () => {
     if (sessionData?.id) {
       try {
@@ -400,6 +436,7 @@ function RectificarPage() {
         setItemJustificationForm(prev => ({ ...prev, [name]: value }));
     }
   };
+  // --- Guardar justificación de ítem en el estado correspondiente ---
   const handleSaveItemJustification = (e) => {
     e.preventDefault();
     const monto = parseFloat(itemJustificationForm.monto);
@@ -420,7 +457,9 @@ function RectificarPage() {
     setIsItemJustificationModalOpen(false);
   };
   
+  // --- Abrir modal para agregar un gasto rendido ---
   const openGastoModal = () => { setGastoForm({monto: '', comprobante: '', motivo: ''}); setIsGastoModalOpen(true);};
+  // --- Manejo de cambios en el formulario de gasto ---
   const handleGastoFormChange = (e) => {
       const {name, value} = e.target;
       if(name === 'monto'){
@@ -430,6 +469,7 @@ function RectificarPage() {
           setGastoForm(prev => ({ ...prev, [name]: value }));
       }
   };
+  // --- Guardar gasto rendido en el estado correspondiente ---
   const handleSaveGasto = (e) => {
     e.preventDefault();
     const monto = parseFloat(gastoForm.monto);
@@ -441,7 +481,9 @@ function RectificarPage() {
     setIsGastoModalOpen(false);
   };
 
+  // --- Abrir modal para agregar una boleta pendiente/rectificada ---
   const openBoletaModal = () => { setBoletaForm({monto: '', numeroBoleta: '', estadoBoleta: 'Pendiente'}); setIsBoletaModalOpen(true);};
+  // --- Manejo de cambios en el formulario de boleta ---
   const handleBoletaFormChange = (e) => {
     const {name, value} = e.target;
     if(name === 'monto'){
@@ -451,6 +493,7 @@ function RectificarPage() {
         setBoletaForm(prev => ({ ...prev, [name]: value }));
     }
   };
+  // --- Guardar boleta ingresada en el estado correspondiente ---
   const handleSaveBoleta = (e) => {
     e.preventDefault();
     const monto = parseFloat(boletaForm.monto);
@@ -459,11 +502,13 @@ function RectificarPage() {
     setIsBoletaModalOpen(false);
   };
 
+  // --- Iniciar proceso de envío de solicitud de rectificación (abre modal de confirmación) ---
   const handleSubmitRectification = async (e) => {
     if (e) e.preventDefault();
     setShowConfirmModal(true);
   };
 
+  // --- Enviar solicitud de rectificación a Firebase ---
   const doSubmitRectification = async () => {
     if (!sessionData || userRole !== 'admin') {
       setError("Solo los administradores pueden enviar solicitudes de rectificación.");
@@ -546,6 +591,7 @@ function RectificarPage() {
     } finally { setIsSubmitting(false); setShowConfirmModal(false); }
   };
 
+  // --- Acción de aprobación/rechazo por parte del superadministrador ---
   const handleApprovalAction = async (action) => {
     if (!existingRectification?.requestId || userRole !== 'superadmin') return;
     const decisionComment = mainFormData.superAdminMotivoDecision.trim();
@@ -586,6 +632,7 @@ function RectificarPage() {
     }
   };
   
+  // --- Abrir modal para ver justificaciones de un método de pago ---
   const openViewJustificationsModal = (name, justifications) => {
     setJustificationsToViewInfo({ name: name, justifications: justifications || [] });
     setIsViewJustificationsModalOpen(true);
@@ -715,7 +762,7 @@ function RectificarPage() {
         <section className="desglose-caja-card">
           <h3>Desglose de Caja y Medios de Pago</h3>
           <table className="excel-style-table">
-            <thead><tr><th>Método</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Justificaciones (Ítem)</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Método</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Justificaciones</th><th>Acciones</th></tr></thead>
             <tbody>
               {efectivoConfig && (
                 <tr>
@@ -868,7 +915,7 @@ function RectificarPage() {
                   )}
                 </div>
                 <table className="excel-style-table condensed"><tbody>
-                    <tr><td>Gastos (Sistema)</td><td>{formatCurrency(gastosSistemaAPI)}</td></tr>
+                    <tr><td>Gastos</td><td>{formatCurrency(gastosSistemaAPI)}</td></tr>
                     <tr><td>Total Gastos Rendidos</td><td>{formatCurrency(totalGastosRendidos)}</td></tr>
                     <tr><td>Diferencia Gastos</td><td className={diferenciaGastos !==0 ? (diferenciaGastos > 0 ? 'text-green' : 'text-red') : ''}>{formatCurrency(diferenciaGastos)}</td></tr>
                 </tbody></table>
@@ -1083,10 +1130,10 @@ function RectificarPage() {
                     <div className="form-group">
                         <label htmlFor="boletaEstadoBoleta">
                             Estado Boleta:
-                            { (diferenciaBrutaSinBoletas + efectoNetoBoletas) !== 0 && 
+                            { (diferenciaBrutaSinBoletas + efectoNetoBoletas) !== 0 /*&& 
                                 <span style={{fontSize: '0.85em', display: 'block', color: '#666'}}>
                                     Diferencia actual (previo a esta boleta): {formatCurrency(diferenciaBrutaSinBoletas + efectoNetoBoletas)}
-                                </span>
+                                </span>*/
                             }
                         </label>
                         <select id="boletaEstadoBoleta" name="estadoBoleta" value={boletaForm.estadoBoleta} onChange={handleBoletaFormChange}>
