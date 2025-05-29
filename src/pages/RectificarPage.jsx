@@ -756,7 +756,7 @@ function RectificarPage() {
 
   // --- Acción de aprobación/rechazo por parte del superadministrador ---
   const handleApprovalAction = async (action) => {
-    if (!existingRectification?.requestId || userRole !== 'superadmin') return;
+    if (!formState.existingRectification?.requestId || userRole !== 'superadmin') return;
     const decisionComment = formState.mainFormData.superAdminMotivoDecision.trim();
     if (action === 'rechazada' && !decisionComment) {
         setError('Motivo de rechazo es requerido.');
@@ -777,7 +777,7 @@ function RectificarPage() {
     };
 
     try {
-        await update(ref(database, `rectificationRequests/${existingRectification.requestId}`), sanitizeForFirebase(updates));
+        await update(ref(database, `rectificationRequests/${formState.existingRectification.requestId}`), sanitizeForFirebase(updates));
         setSuccess(`Solicitud ${action} con éxito.`);
         setExistingRectification(prev => ({
             ...prev,
@@ -817,6 +817,9 @@ function RectificarPage() {
       } else {
           efectivoFisicoParaDisplay = isNaN(parsedInput) ? (parseFloat(formState.sessionData?.cash_register_balance_end_real) || 0) : parsedInput;
       }
+  } else if (formState.existingRectification) {
+      // Si hay rectificación existente, usar el saldo ajustado guardado
+      efectivoFisicoParaDisplay = parseFloat(formState.existingRectification?.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado);
   } else { 
       efectivoFisicoParaDisplay = parseFloat(formState.existingRectification?.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado);
       if (isNaN(efectivoFisicoParaDisplay)) {
@@ -1048,13 +1051,13 @@ function RectificarPage() {
                 let fisicoItemParaDisplayValue;
                 let fisicoItemNumerico;
                 
-                if (finalIsFormEditable || (userRole === 'superadmin' && location.state?.viewDraft && !existingRectification)) {
+                if (finalIsFormEditable || (userRole === 'superadmin' && location.state?.viewDraft && !formState.existingRectification)) {
                     // Mostrar el valor del borrador, o 0 si está vacío/no definido
                     fisicoItemParaDisplayValue = (item.fisicoEditable !== undefined && item.fisicoEditable.trim() !== '') ? item.fisicoEditable : '0';
                     const parsedFisicoEditable = parseFloat(parseInputAmount(fisicoItemParaDisplayValue));
                     fisicoItemNumerico = !isNaN(parsedFisicoEditable) ? parsedFisicoEditable : 0;
                 } else { 
-                    const fisicoGuardado = existingRectification?.rectificationDetails?.justificacionesPorMetodo?.[item.name]?.montoFisicoIngresado;
+                    const fisicoGuardado = formState.existingRectification?.rectificationDetails?.justificacionesPorMetodo?.[item.name]?.montoFisicoIngresado;
                     fisicoItemParaDisplayValue = fisicoGuardado !== undefined ? String(fisicoGuardado) : '0';
                     fisicoItemNumerico = parseFloat(parseInputAmount(fisicoItemParaDisplayValue));
                     if(isNaN(fisicoItemNumerico)) fisicoItemNumerico = 0;
@@ -1252,13 +1255,13 @@ function RectificarPage() {
             <section className="solicitud-actual-card">
                 <h3>Detalles Solicitud de Rectificación</h3>
                 <div className="details-grid">
-                    <p><strong>Email Solicitador/a:</strong> {existingRectification.submittedByEmail || 'N/A'}</p>
-                    <p><strong>Fecha Solicitud:</strong> {formatDateTime(existingRectification.submittedAt)}</p>
-                    <p><strong>Estado:</strong> <span className={`status-chip status-${existingRectification.status}`}>{existingRectification.status.replace(/_/g, ' ')}</span></p>
-                    {existingRectification.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado !== undefined && <p><strong>Saldo Efectivo Ajustado:</strong> {formatCurrency(existingRectification.rectificationDetails.ajusteSaldoEfectivo.montoAjustado)}</p>}
-                    {existingRectification.approvedByName && <p><strong>Decidido por:</strong> {existingRectification.approvedByName}</p>}
-                    {existingRectification.approvedAt && <p><strong>Fecha Decisión:</strong> {formatDateTime(existingRectification.approvedAt)}</p>}
-                    {existingRectification.rejectionReason && <p><strong>Motivo Decisión:</strong> {existingRectification.rejectionReason}</p>}
+                    <p><strong>Email Solicitador/a:</strong> {formState.existingRectification.submittedByEmail || 'N/A'}</p>
+                    <p><strong>Fecha Solicitud:</strong> {formatDateTime(formState.existingRectification.submittedAt)}</p>
+                    <p><strong>Estado:</strong> <span className={`status-chip status-${formState.existingRectification.status}`}>{formState.existingRectification.status.replace(/_/g, ' ')}</span></p>
+                    {formState.existingRectification.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado !== undefined && <p><strong>Saldo Efectivo Ajustado:</strong> {formatCurrency(formState.existingRectification.rectificationDetails.ajusteSaldoEfectivo.montoAjustado)}</p>}
+                    {formState.existingRectification.approvedByName && <p><strong>Decidido por:</strong> {formState.existingRectification.approvedByName}</p>}
+                    {formState.existingRectification.approvedAt && <p><strong>Fecha Decisión:</strong> {formatDateTime(formState.existingRectification.approvedAt)}</p>}
+                    {formState.existingRectification.rejectionReason && <p><strong>Motivo Decisión:</strong> {formState.existingRectification.rejectionReason}</p>}
                 </div>
             </section>
         )}
