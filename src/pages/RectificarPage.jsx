@@ -884,9 +884,8 @@ function RectificarPage() {
   if (!formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
  
   // Variable final para determinar si el formulario debe ser editable.
-  // Un admin en modo 'create' puede editar.
-  // Un superadmin viendo el borrador de un admin NO puede editar.
-  const finalIsFormEditable = isFormEditableByAdmin && !(userRole === 'superadmin' && location.state?.adminDraftOwnerId);
+  // Solo los admin pueden editar en modo 'create'. Los superadmin solo visualizan.
+  const finalIsFormEditable = userRole === 'admin' && formState.pageMode === 'create';
 
   // Condición para mostrar el botón de justificar efectivo.
   const puedeJustificarEfectivoCalculated = finalIsFormEditable && (diferenciaBrutaConBoletas !== 0 || diferenciaEfectivoNeta !== 0);
