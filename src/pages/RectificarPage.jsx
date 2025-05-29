@@ -3,6 +3,7 @@
 // Este componente permite a los administradores y superadministradores revisar, justificar y rectificar diferencias de caja en sesiones POS.
 // Incluye lógica para cargar datos desde Odoo y Firebase, gestionar formularios, justificaciones, gastos, boletas y flujos de aprobación.
 // Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
+// Documentación detallada en español para cada función y bloque relevante.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';

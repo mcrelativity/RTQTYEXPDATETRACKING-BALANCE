@@ -2,6 +2,7 @@
 // Permite buscar productos por código de barras, mostrar detalles y registrar una entrada de stock con cantidad y vencimiento.
 // Valida los datos ingresados y guarda la entrada en Firebase bajo el local del usuario.
 // Muestra mensajes de éxito o error según el resultado de la operación.
+// Documentación detallada en español para cada función y bloque relevante.
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -11,24 +12,25 @@ import { ref, get, push, serverTimestamp } from 'firebase/database';
 const DEBOUNCE_DELAY = 500;
 
 function StockEntryPage() {
-    // Obtiene usuario y local asignado desde el contexto
+    // Obtiene usuario y local asignado desde el contexto global de autenticación
     const { currentUser, userStoreId } = useAuth();
-    // Hook para navegación programática
+    // Hook para navegación programática entre páginas
     const navigate = useNavigate();
     // Estados para los campos del formulario y control de errores/carga
-    const [barcodeInput, setBarcodeInput] = useState('');
-    const [isLoadingProduct, setIsLoadingProduct] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [productData, setProductData] = useState(null);
-    const [productId, setProductId] = useState(null);
-    const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
-    const [quantity, setQuantity] = useState('');
-    const [expiryMonth, setExpiryMonth] = useState('');
-    const [expiryYear, setExpiryYear] = useState('');
-    const barcodeInputRef = useRef(null);
-    const debounceTimeoutRef = useRef(null);
+    const [barcodeInput, setBarcodeInput] = useState(''); // Código de barras ingresado
+    const [isLoadingProduct, setIsLoadingProduct] = useState(false); // Estado de carga al buscar producto
+    const [isSubmitting, setIsSubmitting] = useState(false); // Estado de carga al enviar formulario
+    const [productData, setProductData] = useState(null); // Datos del producto encontrado
+    const [productId, setProductId] = useState(null); // ID del producto encontrado
+    const [error, setError] = useState(''); // Mensaje de error
+    const [successMessage, setSuccessMessage] = useState(''); // Mensaje de éxito
+    const [quantity, setQuantity] = useState(''); // Cantidad ingresada
+    const [expiryMonth, setExpiryMonth] = useState(''); // Mes de vencimiento
+    const [expiryYear, setExpiryYear] = useState(''); // Año de vencimiento
+    const barcodeInputRef = useRef(null); // Referencia al input de código de barras
+    const debounceTimeoutRef = useRef(null); // Referencia para timeout de debounce
 
+    // Genera los años y meses disponibles para el selector de vencimiento
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
     const months = Array.from({ length: 12 }, (_, i) => i + 1);

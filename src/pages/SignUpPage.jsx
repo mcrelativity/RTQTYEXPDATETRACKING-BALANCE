@@ -2,6 +2,7 @@
 // Permite a un nuevo usuario crear una cuenta con email y contraseña.
 // Valida que las contraseñas coincidan y maneja errores comunes de registro.
 // Al registrarse exitosamente, guarda el usuario en Firebase y lo redirige al login.
+// Documentación detallada en español para cada función y bloque relevante.
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -10,18 +11,24 @@ import { auth, database } from '../firebase/firebaseConfig';
 
 function SignUpPage() {
   // Estados para los campos del formulario y control de errores/carga
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [email, setEmail] = useState(''); // Email ingresado por el usuario
+  const [password, setPassword] = useState(''); // Contraseña ingresada
+  const [confirmPassword, setConfirmPassword] = useState(''); // Confirmación de contraseña
+  const [error, setError] = useState(''); // Mensaje de error a mostrar
+  const [loading, setLoading] = useState(false); // Estado de carga del botón
+  const navigate = useNavigate(); // Hook para navegación programática
 
-  // Maneja el registro del usuario
+  /**
+   * Maneja el registro del usuario.
+   * Valida que las contraseñas coincidan y crea el usuario en Firebase Auth y Database.
+   * Muestra mensajes de error específicos según el código de error recibido.
+   * @param {Event} e Evento de submit del formulario
+   */
   const handleSignUp = async (e) => {
     e.preventDefault();
     setError('');
 
+    // Validación de coincidencia de contraseñas
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
@@ -30,9 +37,11 @@ function SignUpPage() {
     setLoading(true);
 
     try {
+      // Crea el usuario en Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Guarda información adicional en la base de datos
       await set(ref(database, 'users/' + user.uid), {
         email: user.email,
         role: 'user'
@@ -42,6 +51,7 @@ function SignUpPage() {
       navigate('/login');
 
     } catch (error) {
+      // Manejo de errores de registro
       console.error("Signup error:", error.code, error.message);
       if (error.code === 'auth/email-already-in-use') {
         setError('Este correo electrónico ya está en uso.');

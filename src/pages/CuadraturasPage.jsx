@@ -1,5 +1,6 @@
 import './CuadraturasSkeletonLoader.css';
 // Skeleton Loader para la tabla de cuadraturas
+// Componente visual que muestra una animación de carga mientras se obtienen los datos de cuadraturas.
 function CuadraturasSkeletonLoader() {
   return (
     <div className="skeleton-loader">
@@ -24,6 +25,7 @@ function CuadraturasSkeletonLoader() {
 // Permite a administradores y superadministradores visualizar, filtrar y navegar a la rectificación de cada sesión.
 // Incluye lógica para cargar datos desde Odoo y Firebase, filtrar por estado, y gestionar la navegación a la página de rectificación.
 // Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
+// Documentación detallada en español para cada función y bloque relevante.
 
 // Importaciones principales de React y librerías necesarias
 import React, { useState, useEffect, useCallback, useMemo } from 'react';

@@ -3,6 +3,7 @@
 // Carga datos de productos, locales, stock y ROPs desde Firebase.
 // Permite seleccionar mes y año, buscar productos, y exportar a Excel.
 // Muestra mensajes de error y control de acceso según el rol.
+// Documentación detallada en español para cada función y bloque relevante.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';

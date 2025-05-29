@@ -9,13 +9,18 @@ import { auth } from '../firebase/firebaseConfig';
 
 function LoginPage() {
   // Estados para los campos del formulario y control de errores/carga
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [email, setEmail] = useState(''); // Email ingresado por el usuario
+  const [password, setPassword] = useState(''); // Contraseña ingresada
+  const [error, setError] = useState(''); // Mensaje de error a mostrar
+  const [loading, setLoading] = useState(false); // Estado de carga del botón
+  const navigate = useNavigate(); // Hook para navegación programática
 
-  // Maneja el inicio de sesión del usuario
+  /**
+   * Maneja el inicio de sesión del usuario.
+   * Realiza la autenticación con Firebase y navega a Home si es exitoso.
+   * Muestra mensajes de error específicos según el código de error recibido.
+   * @param {Event} e Evento de submit del formulario
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -25,6 +30,7 @@ function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       navigate('/home');
     } catch (error) {
+      // Manejo de errores de autenticación
       console.error("Login error:", error.code, error.message);
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         setError('Correo electrónico o contraseña incorrectos.');
@@ -38,6 +44,7 @@ function LoginPage() {
   return (
     <div className="page-container">
       <h2>Iniciar Sesión</h2>
+      {/* Formulario de inicio de sesión */}
       <form onSubmit={handleLogin}>
         <div>
           <label htmlFor="email">Email:</label>
@@ -61,12 +68,12 @@ function LoginPage() {
             disabled={loading}
           />
         </div>
+        {/* Mensaje de error si existe */}
         {error && <p className="error-message">{error}</p>}
         <button type="submit" disabled={loading}>
           {loading ? 'Ingresando...' : 'Ingresar'}
         </button>
       </form>
-      
     </div>
   );
 }
