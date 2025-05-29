@@ -779,15 +779,19 @@ function RectificarPage() {
     try {
         await update(ref(database, `rectificationRequests/${formState.existingRectification.requestId}`), sanitizeForFirebase(updates));
         setSuccess(`Solicitud ${action} con éxito.`);
-        setExistingRectification(prev => ({
-            ...prev,
+        // Actualiza el estado atómico formState para reflejar el cambio de status y datos de aprobación
+        setFormState(prev => ({
+          ...prev,
+          existingRectification: {
+            ...prev.existingRectification,
             status: action,
             approvedByUid: updates.approvedByUid,
             approvedByName: updates.approvedByName,
-            approvedAt: updates.approvedAt, 
-            rejectionReason: updates.rejectionReason 
+            approvedAt: updates.approvedAt,
+            rejectionReason: updates.rejectionReason
+          },
+          pageMode: 'view_only'
         }));
-        setPageMode('view_only');
     } catch (err) {
         setError(`Error al ${action}.`);
     } finally {
