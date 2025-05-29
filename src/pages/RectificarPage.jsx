@@ -12,6 +12,7 @@ import { database } from '../firebase/firebaseConfig';
 import { ref, push, serverTimestamp, get, update, set } from "firebase/database";
 import './RectificarConfirmAnimation.css';
 import './ModernSkeletonLoader.css';
+import './RectificarPage.css'; // Import the new CSS file
 
 // --- Componentes auxiliares ---
 
@@ -29,31 +30,82 @@ function RectificarConfirmAnimation({ success, message, desc }) {
 // Modern Skeleton Loader con estructura similar a la página de rectificación
 function RectificarSkeletonLoader() {
   return (
-    <div className="modern-skeleton-loader">
-      <div className="modern-skeleton-header" />
-      <div className="modern-skeleton-form">
-        {[...Array(2)].map((_, i) => (
-          <div className="modern-skeleton-form-row" key={i}>
-            <div className="modern-skeleton-form-label" />
-            <div className="modern-skeleton-form-input" />
-          </div>
-        ))}
+    <div className="modern-skeleton-loader rectificar-page-container"> {/* Added rectificar-page-container for consistent padding */} 
+      {/* Header Skeleton */}
+      <div className="modern-skeleton-card modern-skeleton-header-card">
+        <div className="modern-skeleton-element modern-skeleton-title" style={{ width: '60%', height: '30px', marginBottom: '10px' }} />
+        <div className="modern-skeleton-element modern-skeleton-button" style={{ width: '120px', height: '30px', position: 'absolute', top: '20px', right: '20px' }} />
       </div>
-      <div className="modern-skeleton-table">
-        <div className="modern-skeleton-table-header">
-          <div className="modern-skeleton-table-header-cell" style={{width: '20%'}} />
-          <div className="modern-skeleton-table-header-cell" style={{width: '30%'}} />
-          <div className="modern-skeleton-table-header-cell" style={{width: '25%'}} />
-          <div className="modern-skeleton-table-header-cell" style={{width: '25%'}} />
+
+      {/* Session Info Skeleton */}
+      <div className="modern-skeleton-card">
+        <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '30%', height: '20px', marginBottom: '15px' }} />
+        <div className="modern-skeleton-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+          {[...Array(5)].map((_, i) => (
+            <div className="modern-skeleton-element modern-skeleton-text-line" key={i} style={{ height: '16px' }} />
+          ))}
         </div>
-        {[...Array(4)].map((_, i) => (
-          <div className="modern-skeleton-table-row" key={i}>
-            <div className="modern-skeleton-table-cell" />
-            <div className="modern-skeleton-table-cell" />
-            <div className="modern-skeleton-table-cell" style={{width: '25%'}} />
-            <div className="modern-skeleton-table-cell" style={{width: '25%'}} />
+      </div>
+
+      {/* Desglose de Caja Table Skeleton */}
+      <div className="modern-skeleton-card">
+        <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '40%', height: '20px', marginBottom: '15px' }} />
+        <div className="modern-skeleton-table">
+          <div className="modern-skeleton-table-header-row" style={{ display: 'flex', gap: '10px', paddingBottom: '10px' }}>
+            {['20%', '20%', '20%', '20%', '10%', '10%'].map((width, i) => (
+              <div className="modern-skeleton-element modern-skeleton-table-header-cell" key={i} style={{ flexBasis: width, height: '18px' }} />
+            ))}
           </div>
-        ))}
+          {[...Array(3)].map((_, i) => (
+            <div className="modern-skeleton-table-data-row" key={i} style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+              {['20%', '20%', '20%', '20%', '10%', '10%'].map((width, j) => (
+                <div className="modern-skeleton-element modern-skeleton-table-cell" key={j} style={{ flexBasis: width, height: '16px' }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Gastos and Boletas Skeletons (side-by-side) */}
+      <div className="additional-actions-grid-skeleton" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
+        {/* Gastos Skeleton */}
+        <div className="modern-skeleton-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '30%', height: '20px' }} />
+            <div className="modern-skeleton-element modern-skeleton-button-small" style={{ width: '100px', height: '28px' }} />
+          </div>
+          <div className="modern-skeleton-element modern-skeleton-text-line" style={{ height: '16px', marginBottom: '8px' }} />
+          <div className="modern-skeleton-element modern-skeleton-text-line" style={{ height: '16px', marginBottom: '15px' }} />
+          <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '50%', height: '18px', marginBottom: '10px' }} />
+          {[...Array(2)].map((_, i) => (
+            <div className="modern-skeleton-table-data-row" key={i} style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+              {[ '10%', '25%', '40%', '15%'].map((width, j) => (
+                <div className="modern-skeleton-element modern-skeleton-table-cell" key={j} style={{ flexBasis: width, height: '14px' }} />
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Boletas Skeleton */}
+        <div className="modern-skeleton-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '40%', height: '20px' }} />
+            <div className="modern-skeleton-element modern-skeleton-button-small" style={{ width: '100px', height: '28px' }} />
+          </div>
+          <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '60%', height: '18px', marginBottom: '10px' }} />
+          {[...Array(2)].map((_, i) => (
+            <div className="modern-skeleton-table-data-row" key={i} style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+              {['10%', '30%', '25%', '25%'].map((width, j) => (
+                <div className="modern-skeleton-element modern-skeleton-table-cell" key={j} style={{ flexBasis: width, height: '14px' }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Action Buttons Skeleton */}
+      <div className="modern-skeleton-card" style={{ textAlign: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
+        <div className="modern-skeleton-element modern-skeleton-action-button" style={{ width: '250px', height: '36px', margin: '0 auto' }} />
       </div>
     </div>
   );
@@ -157,86 +209,68 @@ function sanitizeForFirebase(dataObject) {
 // --- Componente principal de la página de Rectificación ---
 // Gestiona la lógica de visualización, edición, justificación y envío de solicitudes de rectificación de caja.
 // Incluye manejo de estados, hooks de ciclo de vida, lógica de negocio y renderizado condicional.
-function RectificarPage() {  
-  // --- Hooks de React Router y Auth ---
-  const navigate = useNavigate(); // Hook para la navegación programática.
-  const location = useLocation(); // Hook para acceder al estado pasado en la navegación.
-  const { sessionId } = useParams(); // Hook para obtener el 'sessionId' de los parámetros de la URL.
-  const { currentUser, userRole } = useAuth(); // Hook para obtener el usuario actual y su rol.
 
-  // --- Estados principales de la página ---
-  // Almacenan datos de la sesión, modo de la página, detalles de pagos, rectificaciones existentes y formularios.
-  const [sessionData, setSessionData] = useState(null); // Datos de la sesión POS de Odoo.
-  const [pageMode, setPageMode] = useState('view_only'); // Controla el modo de la página: 'create', 'review', 'view_only'.
-  const [paymentDetails, setPaymentDetails] = useState([]); // Array con detalles de medios de pago (no efectivo) y sus montos físicos.
-  const [existingRectification, setExistingRectification] = useState(null); // Almacena una rectificación ya enviada si se está revisando o viendo.
-  
-  // --- Estados para los datos del formulario principal ---
-  const [mainFormData, setMainFormData] = useState({
-    nuevoSaldoFinalRealEfectivo: '', // Input para el monto físico de efectivo.
-    superAdminMotivoDecision: '' // Input para los comentarios del superadmin.
+function RectificarPage() {
+  // --- Hooks de React Router y Auth ---
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { sessionId } = useParams();
+  const { currentUser, userRole } = useAuth();
+
+  // --- Estado maestro atómico ---
+  const [formState, setFormState] = useState({
+    sessionData: null,
+    pageMode: 'view_only',
+    paymentDetails: [],
+    existingRectification: null,
+    mainFormData: {
+      nuevoSaldoFinalRealEfectivo: '',
+      superAdminMotivoDecision: ''
+    },
+    itemJustifications: {},
+    gastosRendidos: [],
+    boletasPendientes: [],
+    gastosSistemaAPI: 0
   });
 
-  // --- Estados para los datos de justificaciones, gastos y boletas ---
-  const [itemJustifications, setItemJustifications] = useState({}); // Objeto para almacenar justificaciones por método de pago.
-  const [gastosRendidos, setGastosRendidos] = useState([]); // Array de gastos rendidos.
-  const [boletasPendientes, setBoletasPendientes] = useState([]); // Array de boletas pendientes/rectificadas.
-  const [gastosSistemaAPI, setGastosSistemaAPI] = useState(0); // Gastos de la sesión según Odoo.
-  
   // --- Estados para la UI: carga, errores y feedback unificado ---
-  const [isLoading, setIsLoading] = useState(true); // Carga inicial de datos base
-  const [error, setError] = useState(''); // Mensaje de error general
-  const [success, setSuccess] = useState(''); // Mensaje de éxito para envío final
-  
-  // Estados para animación de confirmación
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [showConfirmAnim, setShowConfirmAnim] = useState(false);
   const [confirmAnimSuccess, setConfirmAnimSuccess] = useState(true);
   const [confirmAnimMsg, setConfirmAnimMsg] = useState('');
   const [confirmAnimDesc, setConfirmAnimDesc] = useState('');
-
-  // Estados para feedback temporal unificado
   const [tempNotification, setTempNotification] = useState({
     show: false,
-    type: '', // 'draft_saved', 'draft_loaded'
+    type: '',
     message: '',
     duration: 3000
   });
-  
-  // --- Estados para controlar acciones de envío y guardado ---
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-
-  // --- Estados para los modales de ingreso de datos (justificaciones, gastos, boletas) ---
   const [isItemJustificationModalOpen, setIsItemJustificationModalOpen] = useState(false);
   const [currentItemForJustification, setCurrentItemForJustification] = useState(null);
   const [itemJustificationForm, setItemJustificationForm] = useState({ monto: '', motivo: '', tipo: 'faltante' });
-
   const [isGastoModalOpen, setIsGastoModalOpen] = useState(false);
   const [gastoForm, setGastoForm] = useState({ monto: '', comprobante: '', motivo: '' });
-
   const [isBoletaModalOpen, setIsBoletaModalOpen] = useState(false);
-  const [boletaForm, setBoletaForm] = useState({ monto: '', numeroBoleta: '', estadoBoleta: 'Pendiente' });  
-  
-  const [isViewJustificationsModalOpen, setIsViewJustificationsModalOpen] = useState(false);  
+  const [boletaForm, setBoletaForm] = useState({ monto: '', numeroBoleta: '', estadoBoleta: 'Pendiente' });
+  const [isViewJustificationsModalOpen, setIsViewJustificationsModalOpen] = useState(false);
   const [justificationsToViewInfo, setJustificationsToViewInfo] = useState({ name: '', justifications: [] });
-
-  // Estados optimizados para el manejo de borradores
   const [draftState, setDraftState] = useState({
-    pending: null,        // Borrador pendiente de aplicar
-    lastEditInfo: null,   // Info de última edición
-    isLoading: false,     // Solo para la carga desde Firebase
-    hasShownNotification: false  // Bandera para controlar notificación única
+    pending: null,
+    lastEditInfo: null,
+    isLoading: false,
+    hasShownNotification: false
   });
-    // Estado unificado de carga
   const [loadingState, setLoadingState] = useState({
-    isInitialLoading: true,    // Carga inicial de datos
-    isReadyToShow: false,      // UI principal lista para mostrar
-    hasError: false,           // Si hay algún error crítico
-    isDraftBeingApplied: false // Flag para indicar que se está aplicando borrador
+    isInitialLoading: true,
+    isReadyToShow: false,
+    hasError: false,
+    isDraftBeingApplied: false
   });
-
-  // Refs para evitar bucles infinitos
   const hasDraftBeenProcessedRef = useRef(false);
   const sessionIdRef = useRef(null);
 
@@ -253,53 +287,20 @@ function RectificarPage() {
   // --- Función utilitaria para debugging del estado del formulario ---
   const logCurrentFormState = useCallback((moment) => {
     console.log(`[DEBUG] Estado del formulario ${moment}:`, {
-      mainFormData: mainFormData,
-      itemJustifications: itemJustifications,
-      gastosRendidos: gastosRendidos,
-      boletasPendientes: boletasPendientes,
-      paymentDetails: paymentDetails,
+      mainFormData: formState.mainFormData,
+      itemJustifications: formState.itemJustifications,
+      gastosRendidos: formState.gastosRendidos,
+      boletasPendientes: formState.boletasPendientes,
+      paymentDetails: formState.paymentDetails,
       loadingState: loadingState
     });
-  }, [mainFormData, itemJustifications, gastosRendidos, boletasPendientes, paymentDetails, loadingState]);
+  }, [formState, loadingState]);
 
   // --- Función optimizada para aplicar borrador de forma directa y confiable ---
+  // Ahora innecesaria: la carga atómica ya fusiona todo en setFormState
   const applyDraftDataDirectly = useCallback(async (draftData) => {
-    console.log('[RectificarPage] Aplicando borrador directamente:', draftData);
-    console.log('[DEBUG] Estado del formulario ANTES de aplicar borrador');
-    try {
-      // Preparar nuevos estados
-      const updates = {};
-      if (draftData.mainFormData?.nuevoSaldoFinalRealEfectivo !== undefined || draftData.mainFormData?.superAdminMotivoDecision !== undefined) {
-        updates.mainFormData = {
-          ...(draftData.mainFormData.nuevoSaldoFinalRealEfectivo !== undefined && { nuevoSaldoFinalRealEfectivo: String(draftData.mainFormData.nuevoSaldoFinalRealEfectivo) }),
-          ...(draftData.mainFormData.superAdminMotivoDecision !== undefined && { superAdminMotivoDecision: String(draftData.mainFormData.superAdminMotivoDecision) })
-        };
-      }
-      if (draftData.itemJustifications && typeof draftData.itemJustifications === 'object') {
-        updates.itemJustifications = { ...draftData.itemJustifications };
-      }
-      if (Array.isArray(draftData.gastosRendidos)) {
-        updates.gastosRendidos = [...draftData.gastosRendidos];
-      }
-      if (Array.isArray(draftData.boletasPendientes)) {
-        updates.boletasPendientes = [...draftData.boletasPendientes];
-      }
-      if (Array.isArray(draftData.paymentDetails)) {
-        updates.paymentDetails = draftData.paymentDetails.map(p => ({ ...p, fisicoEditable: String(p.fisicoEditable || ''), sistema: Number(p.sistema || 0) }));
-      }
-      // Aplicar todos los estados en un solo flushSync para evitar re-renderes intermedios
-      flushSync(() => {
-        if (updates.mainFormData) setMainFormData(prev => ({ ...prev, ...updates.mainFormData }));
-        if (updates.itemJustifications) setItemJustifications(updates.itemJustifications);
-        if (updates.gastosRendidos) setGastosRendidos(updates.gastosRendidos);
-        if (updates.boletasPendientes) setBoletasPendientes(updates.boletasPendientes);
-        if (updates.paymentDetails) setPaymentDetails(updates.paymentDetails);
-      });
-      console.log('[RectificarPage] Borrador aplicado exitosamente - estados actualizados');
-      console.log('[DEBUG] Estado del formulario DESPUÉS de aplicar borrador');
-    } catch (error) {
-      console.error('[RectificarPage] Error aplicando borrador:', error);
-    }
+    // No hacer nada, la lógica de fusión es atómica en setFormState
+    return;
   }, []);
 
   // Función simplificada para verificar si hay datos de borrador válidos
@@ -317,35 +318,47 @@ function RectificarPage() {
   // Esta función establece los datos base de la sesión, pagos, y cualquier rectificación existente.
   // Es el primer paso en la carga de datos de la página.
   const loadInitialData = useCallback(async (passedSessionData, passedMode, passedReqId, urlSessionIdParam) => {
-    setIsLoading(true); setError(''); setSuccess('');
 
+    // Refactor: Retornar objeto baseData con todos los datos necesarios, sin hacer setState aquí
     let sessionToUse = passedSessionData;
     let modeToUse = passedMode || 'view_only';
     let reqIdToUse = passedReqId;
-  
-    if (urlSessionIdParam && (!sessionToUse || sessionToUse.id.toString() !== urlSessionIdParam)) {
-      if (!sessionToUse) {
-        sessionToUse = { id: parseInt(urlSessionIdParam, 10), name: `Sesión ${urlSessionIdParam}` };
-      }
+
+    // Defensive fallback: always create a minimal session object if missing
+    if (!sessionToUse && urlSessionIdParam) {
+      sessionToUse = { id: parseInt(urlSessionIdParam, 10), name: `Sesión ${urlSessionIdParam}` };
     }
-    if (!sessionToUse) { setError("Datos de sesión no disponibles."); setIsLoading(false); return; }
-  
-    setSessionData(sessionToUse);
-    setPageMode(modeToUse); 
-    setGastosSistemaAPI(Math.abs(parseFloat(sessionToUse.cash_real_transaction) || 0));
-  
+    if (!sessionToUse || !sessionToUse.id) {
+      throw new Error("Datos de sesión no disponibles.");
+    }
+
+    let baseData = {
+      sessionData: { ...sessionToUse },
+      pageMode: modeToUse,
+      gastosSistemaAPI: Math.abs(parseFloat(sessionToUse.cash_real_transaction) || 0),
+      existingRectification: null,
+      itemJustifications: {},
+      gastosRendidos: [],
+      boletasPendientes: [],
+      paymentDetails: [],
+      mainFormData: {
+        nuevoSaldoFinalRealEfectivo: '',
+        superAdminMotivoDecision: ''
+      }
+    };
+
     try {
       const odooPayments = await fetchSessionPayments(API_ENDPOINT, sessionToUse.id);
       let loadedExistingRectification = null;
       const initialItemJustifications = {};
-  
+
       if ((modeToUse === 'review' || modeToUse === 'view_only') && reqIdToUse) {
         const requestRef = ref(database, `rectificationRequests/${reqIdToUse}`);
         const snapshot = await get(requestRef);
         if (snapshot.exists()) {
           loadedExistingRectification = { ...snapshot.val(), requestId: reqIdToUse };
-          setExistingRectification(loadedExistingRectification);
-  
+          baseData.existingRectification = loadedExistingRectification;
+
           const justificacionesPorMetodoLoaded = loadedExistingRectification.rectificationDetails?.justificacionesPorMetodo || {};
           for (const methodName in justificacionesPorMetodoLoaded) {
             if (justificacionesPorMetodoLoaded[methodName] && Array.isArray(justificacionesPorMetodoLoaded[methodName].justificaciones)) {
@@ -354,20 +367,20 @@ function RectificarPage() {
               initialItemJustifications[methodName] = [];
             }
           }
-          setItemJustifications(initialItemJustifications);
-          setGastosRendidos(loadedExistingRectification.rectificationDetails?.gastosRendidos || []);
-          setBoletasPendientes(loadedExistingRectification.rectificationDetails?.boletasPendientesRegistradas || []);
+          baseData.itemJustifications = initialItemJustifications;
+          baseData.gastosRendidos = loadedExistingRectification.rectificationDetails?.gastosRendidos || [];
+          baseData.boletasPendientes = loadedExistingRectification.rectificationDetails?.boletasPendientesRegistradas || [];
         } else {
-          setError('Solicitud de rectificación asociada no encontrada.');
           if (userRole === 'admin' && sessionToUse.rectificationStatus === 'sin_rectificar') {
-            setPageMode('create'); 
-            modeToUse = 'create'; 
+            modeToUse = 'create';
+            baseData.pageMode = 'create';
           }
         }
       } else if (modeToUse === 'create') {
-        setExistingRectification(null); setItemJustifications({}); setGastosRendidos([]); setBoletasPendientes([]);
+        // No hay rectificación existente
       }
-  
+
+      // Compose atomic state update for paymentDetails and mainFormData
       const initialPaymentDetails = DEFAULT_PAYMENT_METHODS_CONFIG.map(defaultMethod => {
         if (defaultMethod.isCash) return null;
         let odooAmount = 0;
@@ -375,13 +388,13 @@ function RectificarPage() {
           const foundPayment = odooPayments.find(p => (Array.isArray(p.payment_method_id) ? p.payment_method_id[1] : '') === nameVariant);
           if (foundPayment) odooAmount += (parseFloat(foundPayment.amount ?? 0) || 0);
         });
-  
+
         const existingDetailInRect = loadedExistingRectification?.rectificationDetails?.justificacionesPorMetodo?.[defaultMethod.display_name];
         let fisicoEditable = '';
         if (modeToUse !== 'create' && existingDetailInRect?.montoFisicoIngresado !== undefined) {
             fisicoEditable = existingDetailInRect.montoFisicoIngresado.toString();
         }
-  
+
         return {
           id: defaultMethod.id,
           name: defaultMethod.display_name,
@@ -389,68 +402,93 @@ function RectificarPage() {
           fisicoEditable: fisicoEditable
         };
       }).filter(p => p !== null);
-      setPaymentDetails(initialPaymentDetails);      const efectivoFisicoOdoo = sessionToUse.cash_register_balance_end_real;
+      const efectivoFisicoOdoo = sessionToUse.cash_register_balance_end_real;
       const efectivoFisicoInicialParaForm = (modeToUse !== 'create' && loadedExistingRectification?.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado !== undefined)
         ? loadedExistingRectification.rectificationDetails.ajusteSaldoEfectivo.montoAjustado.toString()
-        : (efectivoFisicoOdoo === null || efectivoFisicoOdoo === undefined ? '' : String(efectivoFisicoOdoo));      // Solo establecer los datos del formulario si NO hay un borrador siendo aplicado
-      // Verificar el estado de carga del borrador en lugar de la existencia del borrador
-      setMainFormData({
+        : (efectivoFisicoOdoo === null || efectivoFisicoOdoo === undefined ? '' : String(efectivoFisicoOdoo));
+
+      baseData.paymentDetails = initialPaymentDetails;
+      baseData.mainFormData = {
         nuevoSaldoFinalRealEfectivo: efectivoFisicoInicialParaForm,
         superAdminMotivoDecision: (modeToUse === 'create' || !loadedExistingRectification) ? '' : (loadedExistingRectification?.rejectionReason || ''),
-      });
-      // Eliminar cualquier bucle: no se mantiene el estado anterior, solo se setea una vez.
-    } catch (err) { setError('Error al cargar datos detallados.'); }
-    finally { setIsLoading(false); }
-  }, [userRole]);// --- useEffect para la carga inicial de datos cuando el componente se monta o sessionId/location.state cambian ---
+      };
+
+      return baseData;
+    } catch (err) {
+      throw new Error('Error al cargar datos detallados.');
+    }
+  }, [userRole]);
   // Efecto unificado: carga inicial + borrador antes de renderizar UI
   // Maestro effect: cargar datos iniciales y aplicar borrador con retry
+  // EFECTO MAESTRO: Carga datos base y aplica borrador de forma secuencial y atómica
   useEffect(() => {
-    if (!sessionId || !(userRole === 'admin' || userRole === 'superadmin')) return;
     let cancelled = false;
-    (async () => {
-      // 1) Ocultar UI y marcar arranque
-      setLoadingState(s => ({ ...s, isReadyToShow: false, isDraftBeingApplied: true }));
+    async function cargarTodo() {
+      setLoadingState(s => ({ ...s, isReadyToShow: false, isDraftBeingApplied: true, isInitialLoading: true }));
       try {
-        // 2) Carga inicial de datos (Odoo + rectificación existente)
-        await loadInitialData(
-          location.state?.sessionInitialData,
-          location.state?.mode,
-          location.state?.existingRequestId,
-          sessionId
-        );
-        if (cancelled) return;
-        // 3) Intentar cargar borrador hasta 3 veces si existe
-        const draftRef = ref(database, `rectificationDrafts/${sessionId}`);
-        for (let attempt = 1; attempt <= 3 && !cancelled; attempt++) {
-          const snap = await get(draftRef);
+        try {
+          // 1. Carga datos base y borrador en variables locales
+          let baseData = await loadInitialData(
+            location.state?.sessionInitialData,
+            location.state?.mode,
+            location.state?.existingRequestId,
+            sessionId
+          );
           if (cancelled) return;
-          if (snap.exists()) {
-            const draft = snap.val();
-            console.log(`Borrador encontrado en intento ${attempt}`);
-            // guardar info de última edición
-            setDraftState(d => ({ ...d, lastEditInfo: draft.lastEdited || null }));
-            // aplicar borrador y esperar commit de estado
-            await applyDraftDataDirectly(draft);
-            // pequeño retraso para asegurar render de nuevos estados
-            await new Promise(res => setTimeout(res, 300));
-            showTempNotification('draft_loaded', 'Borrador cargado exitosamente');
-            break;
+          let draft = null;
+          if (sessionId && (userRole === 'admin' || userRole === 'superadmin')) {
+            const snap = await get(ref(database, `rectificationDrafts/${sessionId}`));
+            if (snap.exists()) draft = snap.val();
           }
-          console.warn(`Borrador no hallado, reintentando ${attempt}/3`);
-          await new Promise(res => setTimeout(res, 300));
+          if (cancelled) return;
+          // 2. Fusiona base y borrador de forma atómica
+          let merged = { ...baseData };
+          if (draft) {
+            merged = {
+              ...merged,
+              ...draft,
+              mainFormData: {
+                ...merged.mainFormData,
+                ...draft.mainFormData
+              },
+              paymentDetails: Array.isArray(draft.paymentDetails) ? draft.paymentDetails.map(p => ({ ...p, fisicoEditable: String(p.fisicoEditable || ''), sistema: Number(p.sistema || 0) })) : merged.paymentDetails,
+              itemJustifications: draft.itemJustifications || merged.itemJustifications,
+              gastosRendidos: Array.isArray(draft.gastosRendidos) ? [...draft.gastosRendidos] : merged.gastosRendidos,
+              boletasPendientes: Array.isArray(draft.boletasPendientes) ? [...draft.boletasPendientes] : merged.boletasPendientes
+            };
+            setDraftState(ds => ({ ...ds, lastEditInfo: draft.lastEdited || null }));
+            showTempNotification('draft_loaded', 'Borrador cargado exitosamente');
+          }
+          setFormState(merged);
+          setLoadingState(s => ({ ...s, isDraftBeingApplied: false, isInitialLoading: false, isReadyToShow: true }));
+        } catch (e) {
+          setError(e.message || 'Error al inicializar la página.');
+          setLoadingState(s => ({ ...s, hasError: true, isInitialLoading: false, isDraftBeingApplied: false }));
         }
       } catch (e) {
-        console.error('Error unificado inicializando rectificar:', e);
-        setLoadingState(s => ({ ...s, hasError: true }));
-      } finally {
-        if (!cancelled) {
-          // 4) Mostrar UI definitiva
-          setLoadingState(s => ({ ...s, isReadyToShow: true, isDraftBeingApplied: false }));
-        }
+        console.error('[RectificarPage] Error durante la carga secuencial:', e);
+        setError('Error al inicializar la página: ' + e.message);
+        setLoadingState(s => ({ ...s, hasError: true, isInitialLoading: false, isDraftBeingApplied: false }));
       }
-    })();
+    }
+    cargarTodo();
     return () => { cancelled = true; };
-  }, [sessionId, userRole, loadInitialData]);
+  }, [sessionId, userRole, loadInitialData, location.state]);
+
+  // Efecto: solo mostrar la UI cuando los datos críticos estén realmente en los estados
+  useEffect(() => {
+    // Considera que los datos están listos si formState tiene datos válidos
+    if (
+      !loadingState.isInitialLoading &&
+      !loadingState.isDraftBeingApplied &&
+      formState && typeof formState === 'object' &&
+      formState.mainFormData && typeof formState.mainFormData === 'object' &&
+      (formState.mainFormData.nuevoSaldoFinalRealEfectivo !== undefined) &&
+      formState.paymentDetails && Array.isArray(formState.paymentDetails)
+    ) {
+      setLoadingState(s => ({ ...s, isReadyToShow: true }));
+    }
+  }, [formState, loadingState.isInitialLoading, loadingState.isDraftBeingApplied]);
   const handleSaveDraft = async () => {
     if (!sessionData || userRole !== 'admin' || pageMode !== 'create') {
       setError("Solo los administradores pueden guardar borradores en modo creación.");
@@ -470,11 +508,11 @@ function RectificarPage() {
       
       const draftDataToSave = {
         // Guardar todos los campos del formulario principal
-        mainFormData: { ...mainFormData },
-        itemJustifications,
-        gastosRendidos,
-        boletasPendientes,
-        paymentDetails,
+        mainFormData: { ...formState.mainFormData },
+        itemJustifications: formState.itemJustifications,
+        gastosRendidos: formState.gastosRendidos,
+        boletasPendientes: formState.boletasPendientes,
+        paymentDetails: formState.paymentDetails,
         lastEdited: lastEditedInfo
       };
       
@@ -626,13 +664,13 @@ function RectificarPage() {
     setError(''); setSuccess(''); setIsSubmitting(true);
 
     const saldoEfectivoFisicoOdooParsed = parseFloat(sessionData.cash_register_balance_end_real);
-    const saldoEfectivoFormulario = mainFormData.nuevoSaldoFinalRealEfectivo.trim();
+    const saldoEfectivoFormulario = formState.mainFormData.nuevoSaldoFinalRealEfectivo.trim();
     let saldoEfectivoFinalParaGuardar;
 
     if (saldoEfectivoFormulario === '') {
       setError('El campo de monto físico efectivo es obligatorio.'); setIsSubmitting(false); setShowConfirmModal(false); return;
     } else {
-      saldoEfectivoFinalParaGuardar = parseFloat(mainFormData.nuevoSaldoFinalRealEfectivo);
+      saldoEfectivoFinalParaGuardar = parseFloat(formState.mainFormData.nuevoSaldoFinalRealEfectivo);
       if (isNaN(saldoEfectivoFinalParaGuardar)) {
         setError('El saldo de efectivo físico ingresado debe ser un número válido.'); setIsSubmitting(false); setShowConfirmModal(false); return;
       }
@@ -645,11 +683,11 @@ function RectificarPage() {
     if (efectivoConfig) {
       justificacionesPorMetodoFinal[efectivoConfig.display_name] = {
         montoFisicoIngresado: saldoEfectivoFinalParaGuardar,
-        justificaciones: itemJustifications[efectivoConfig.display_name] || []
+        justificaciones: formState.itemJustifications[efectivoConfig.display_name] || []
       };
     }
 
-    paymentDetails.forEach(pd => {
+    formState.paymentDetails.forEach(pd => {
       const fisicoEditableForm = pd.fisicoEditable.trim();
       let fisicoFinalParaGuardar;
       if (fisicoEditableForm === '') {
@@ -662,7 +700,7 @@ function RectificarPage() {
       }
       justificacionesPorMetodoFinal[pd.name] = {
         montoFisicoIngresado: isNaN(fisicoFinalParaGuardar) ? pd.sistema : fisicoFinalParaGuardar,
-        justificaciones: itemJustifications[pd.name] || []
+        justificaciones: formState.itemJustifications[pd.name] || []
       };
     });
 
@@ -681,8 +719,8 @@ function RectificarPage() {
       rectificationDetails: {
         ajusteSaldoEfectivo: { montoAjustado: saldoEfectivoFinalParaGuardar },
         justificacionesPorMetodo: justificacionesPorMetodoFinal,
-        gastosRendidos: gastosRendidos,
-        boletasPendientesRegistradas: boletasPendientes,
+        gastosRendidos: formState.gastosRendidos,
+        boletasPendientesRegistradas: formState.boletasPendientes,
       },
       submittedByEmail: currentUser?.email, submittedByUid: currentUser?.uid, submittedAt: serverTimestamp(),
       status: "pendiente", storeIdSubmitter: Array.isArray(sessionData.crm_team_id) ? sessionData.crm_team_id[0] : null,
@@ -718,7 +756,7 @@ function RectificarPage() {
   // --- Acción de aprobación/rechazo por parte del superadministrador ---
   const handleApprovalAction = async (action) => {
     if (!existingRectification?.requestId || userRole !== 'superadmin') return;
-    const decisionComment = mainFormData.superAdminMotivoDecision.trim();
+    const decisionComment = formState.mainFormData.superAdminMotivoDecision.trim();
     if (action === 'rechazada' && !decisionComment) {
         setError('Motivo de rechazo es requerido.');
         return;
@@ -763,38 +801,42 @@ function RectificarPage() {
   };
 
   // Determina si el formulario es editable por un admin (en modo creación).
-  const isFormEditableByAdmin = pageMode === 'create' && userRole === 'admin';
+  const isFormEditableByAdmin = formState.pageMode === 'create' && userRole === 'admin';
   // Determina si un superadmin puede tomar una decisión sobre una solicitud pendiente.
-  const canSuperAdminDecide = pageMode === 'review' && existingRectification?.status === 'pendiente' && userRole === 'superadmin';
+  const canSuperAdminDecide = formState.pageMode === 'review' && formState.existingRectification?.status === 'pendiente' && userRole === 'superadmin';
 
   // Calcula el monto de efectivo físico a mostrar, considerando el modo y rol.
-  const efectivoOdoo = parseFloat(sessionData?.cash_register_balance_end) || 0;
+
+  const efectivoOdoo = parseFloat(formState.sessionData?.cash_register_balance_end) || 0;
   let efectivoFisicoParaDisplay;
-  if (isFormEditableByAdmin || (userRole === 'superadmin' && !existingRectification && location.state?.adminDraftOwnerId)) {
-      const parsedInput = parseFloat(parseInputAmount(mainFormData.nuevoSaldoFinalRealEfectivo));
-      if (mainFormData.nuevoSaldoFinalRealEfectivo.trim() === '') {
-          efectivoFisicoParaDisplay = parseFloat(sessionData?.cash_register_balance_end_real) || 0;
+  if (isFormEditableByAdmin || (userRole === 'superadmin' && !formState.existingRectification && location.state?.adminDraftOwnerId)) {
+      const parsedInput = parseFloat(parseInputAmount(formState.mainFormData.nuevoSaldoFinalRealEfectivo));
+      if (formState.mainFormData.nuevoSaldoFinalRealEfectivo.trim() === '') {
+          efectivoFisicoParaDisplay = parseFloat(formState.sessionData?.cash_register_balance_end_real) || 0;
       } else {
-          efectivoFisicoParaDisplay = isNaN(parsedInput) ? (parseFloat(sessionData?.cash_register_balance_end_real) || 0) : parsedInput;
+          efectivoFisicoParaDisplay = isNaN(parsedInput) ? (parseFloat(formState.sessionData?.cash_register_balance_end_real) || 0) : parsedInput;
       }
   } else { 
-      efectivoFisicoParaDisplay = parseFloat(existingRectification?.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado);
+      efectivoFisicoParaDisplay = parseFloat(formState.existingRectification?.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado);
       if (isNaN(efectivoFisicoParaDisplay)) {
-          efectivoFisicoParaDisplay = parseFloat(sessionData?.cash_register_balance_end_real) || 0;
+          efectivoFisicoParaDisplay = parseFloat(formState.sessionData?.cash_register_balance_end_real) || 0;
       }
   }
-  
+
   const efectivoConfig = DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash);
-  const justificacionesEfectivo = efectivoConfig ? (itemJustifications[efectivoConfig.display_name] || []) : [];
-  const totalJustificadoEfectivo = justificacionesEfectivo.reduce((sum,j) => sum + (parseFloat(j.monto)||0), 0);
-  
-  const totalGastosRendidos = gastosRendidos.reduce((sum, g) => sum + g.monto, 0);
-  const diferenciaGastos = gastosSistemaAPI - totalGastosRendidos;
+  const justificacionesEfectivo = (efectivoConfig && formState.itemJustifications && typeof formState.itemJustifications === 'object')
+
+    ? (formState.itemJustifications[efectivoConfig.display_name] || [])
+    : [];
+  const totalJustificadoEfectivo = (justificacionesEfectivo || []).reduce((sum,j) => sum + (parseFloat(j.monto)||0), 0);
+
+  const totalGastosRendidos = (formState.gastosRendidos || []).reduce((sum, g) => sum + g.monto, 0);
+  const diferenciaGastos = formState.gastosSistemaAPI - totalGastosRendidos;
 
   // Lógica de cálculo de diferencias para el efectivo, incluyendo gastos y boletas.
   const diferenciaBrutaSinBoletas = efectivoFisicoParaDisplay - efectivoOdoo - totalGastosRendidos;
   let efectoNetoBoletas = 0;
-  boletasPendientes.forEach(b => {
+  (formState.boletasPendientes || []).forEach(b => {
     const montoBoleta = parseFloat(b.monto) || 0;
     if (b.estadoBoleta === 'Rectificacion') { 
         efectoNetoBoletas -= montoBoleta;
@@ -803,9 +845,9 @@ function RectificarPage() {
     }
   });
   const diferenciaBrutaConBoletas = diferenciaBrutaSinBoletas + efectoNetoBoletas; 
-  
+
   let totalNetoBoletasDisplay = 0; // Para mostrar en la UI el neto de boletas.
-   boletasPendientes.forEach(b => {
+  (formState.boletasPendientes || []).forEach(b => {
     totalNetoBoletasDisplay += (b.estadoBoleta === 'Rectificacion' ? -1 : 1) * (parseFloat(b.monto) || 0);
   });
 
@@ -814,29 +856,29 @@ function RectificarPage() {
 
   // Genera el título de la página dinámicamente.
   const getPageTitle = () => {
-    const sessionName = sessionData?.name || `ID: ${sessionId}`;
+    const sessionName = formState.sessionData?.name || `ID: ${sessionId}`;
     // Título específico si un superadmin está viendo el borrador de un admin.
-    if (userRole === 'superadmin' && !existingRectification && location.state?.adminDraftOwnerId) {
+    if (userRole === 'superadmin' && !formState.existingRectification && location.state?.adminDraftOwnerId) {
         const adminIdShort = location.state.adminDraftOwnerId.substring(0,6);
         return `Viendo Borrador (Admin: ${adminIdShort}...) para Sesión: ${sessionName}`;
     }
-    if (pageMode === 'create') return `Crear Rectificación para Sesión: ${sessionName}`;
-    if (pageMode === 'review' && existingRectification) return `Revisar Solicitud (${existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
-    if (pageMode === 'view_only' && existingRectification) return `Detalle Solicitud (${existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
-    if (pageMode === 'view_only' && !existingRectification) return `Detalle Sesión (Sin Rectificar): ${sessionName}`;
+    if (formState.pageMode === 'create') return `Crear Rectificación para Sesión: ${sessionName}`;
+    if (formState.pageMode === 'review' && formState.existingRectification) return `Revisar Solicitud (${formState.existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
+    if (formState.pageMode === 'view_only' && formState.existingRectification) return `Detalle Solicitud (${formState.existingRectification.status.replace(/_/g, ' ')}) - Sesión: ${sessionName}`;
+    if (formState.pageMode === 'view_only' && !formState.existingRectification) return `Detalle Sesión (Sin Rectificar): ${sessionName}`;
     return `Rectificación Sesión: ${sessionName}`;
   };
     // Renderizado condicional optimizado
   if (!loadingState.isReadyToShow) return <RectificarSkeletonLoader />;
   if (showConfirmAnim) return <RectificarConfirmAnimation success={confirmAnimSuccess} message={confirmAnimMsg} desc={confirmAnimDesc} />;
-  if (error && !sessionData && !isLoading && !draftState.isApplying) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
-  if (!sessionData && !isLoading && !draftState.isApplying) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
+  if (error && !formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
+  if (!formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
  
   // Variable final para determinar si el formulario debe ser editable.
   // Un admin en modo 'create' puede editar.
   // Un superadmin viendo el borrador de un admin NO puede editar.
   const finalIsFormEditable = isFormEditableByAdmin && !(userRole === 'superadmin' && location.state?.adminDraftOwnerId);
-  
+
   // Condición para mostrar el botón de justificar efectivo.
   const puedeJustificarEfectivoCalculated = finalIsFormEditable && (diferenciaBrutaConBoletas !== 0 || diferenciaEfectivoNeta !== 0);
 
@@ -915,11 +957,11 @@ function RectificarPage() {
         <section className="session-info-card">
           <h3>Detalles de la Sesión</h3>
           <div className="details-grid single-line-details">
-            <p><strong>Sesión:</strong> {sessionData.name || 'N/A'}</p>
-            <p><strong>Local:</strong> {Array.isArray(sessionData.crm_team_id) ? sessionData.crm_team_id[1] : 'N/A'}</p>
-            <p><strong>Usuario:</strong> {Array.isArray(sessionData.user_id) ? sessionData.user_id[1] : 'N/A'}</p>
-            <p><strong>Inicio:</strong> {formatDateTime(sessionData.start_at)}</p>
-            <p><strong>Termino:</strong> {formatDateTime(sessionData.stop_at)}</p>
+            <p><strong>Sesión:</strong> {formState.sessionData?.name || 'N/A'}</p>
+            <p><strong>Local:</strong> {Array.isArray(formState.sessionData?.crm_team_id) ? formState.sessionData.crm_team_id[1] : 'N/A'}</p>
+            <p><strong>Usuario:</strong> {Array.isArray(formState.sessionData?.user_id) ? formState.sessionData.user_id[1] : 'N/A'}</p>
+            <p><strong>Inicio:</strong> {formatDateTime(formState.sessionData?.start_at)}</p>
+            <p><strong>Termino:</strong> {formatDateTime(formState.sessionData?.stop_at)}</p>
           </div>
         </section>
 
@@ -930,14 +972,26 @@ function RectificarPage() {
             <tbody>
               {efectivoConfig && (
                 <tr>
-                  <td>{efectivoConfig.display_name}</td>
-                  <td>{formatCurrency(efectivoOdoo)}</td>
-                  <td>{finalIsFormEditable ? <input type="text" name="nuevoSaldoFinalRealEfectivo" value={mainFormData.nuevoSaldoFinalRealEfectivo} onChange={handleMainFormChange} placeholder="Monto físico actual" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(efectivoFisicoParaDisplay)}</td>
-                  <td className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
-                  <td className="justificaciones-cell">
+                  <td data-label="Método">{efectivoConfig.display_name}</td>
+                  <td data-label="Sistema">{formatCurrency(efectivoOdoo)}</td>
+                  <td data-label="Físico">{finalIsFormEditable ? (
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      name="nuevoSaldoFinalRealEfectivo"
+                      value={typeof formState.mainFormData.nuevoSaldoFinalRealEfectivo === 'string' ? formState.mainFormData.nuevoSaldoFinalRealEfectivo : (formState.mainFormData.nuevoSaldoFinalRealEfectivo || '')}
+                      onChange={handleMainFormChange}
+                      placeholder="Monto físico actual"
+                      disabled={isSubmitting || isSavingDraft}
+                      required
+                    />
+                  ) : formatCurrency(efectivoFisicoParaDisplay)}</td>
+                  <td data-label="Diferencia" className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
+                  <td data-label="Justificaciones" className="justificaciones-cell">
                     {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (finalIsFormEditable && puedeJustificarEfectivoCalculated ? <span className="text-muted-italic">Click en lápiz para justificar</span> : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
                   </td>
-                  <td>
+                  <td data-label="Acciones">
                     {finalIsFormEditable && puedeJustificarEfectivoCalculated && 
                         <button 
                             onClick={() => openItemJustificationModal({ id: efectivoConfig.id, name: efectivoConfig.display_name, sistema: efectivoOdoo, fisicoEditable: mainFormData.nuevoSaldoFinalRealEfectivo })} 
@@ -986,8 +1040,8 @@ function RectificarPage() {
                   </td>
                 </tr>
               )}
-              {paymentDetails.map((item) => {
-                const justsArray = itemJustifications[item.name] || [];
+              {formState.paymentDetails.map((item) => {
+                const justsArray = formState.itemJustifications[item.name] || [];
                 const totalJustificadoItem = justsArray.reduce((sum, j) => sum + (parseFloat(j.monto)||0), 0);
                 
                 let fisicoItemParaDisplayValue;
@@ -1011,13 +1065,24 @@ function RectificarPage() {
 
                 return (
                   <tr key={item.id}>
-                    <td>{item.name}</td><td>{formatCurrency(item.sistema)}</td>
-                    <td>{finalIsFormEditable ? <input type="text" value={item.fisicoEditable || ''} onChange={(e) => handlePaymentDetailChange(item.name, 'fisicoEditable', e.target.value)} placeholder="Monto físico" disabled={isSubmitting || isSavingDraft} required/> : formatCurrency(fisicoItemParaDisplayValue)}</td>
-                    <td className={diferenciaItemNetaConJustificaciones !== 0 ? (diferenciaItemNetaConJustificaciones < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaItemNetaConJustificaciones)}</td>
-                    <td className="justificaciones-cell">
+                    <td data-label="Método">{item.name}</td><td data-label="Sistema">{formatCurrency(item.sistema)}</td>
+                    <td data-label="Físico">{finalIsFormEditable ? (
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        value={typeof item.fisicoEditable === 'string' ? item.fisicoEditable : (item.fisicoEditable || '')}
+                        onChange={(e) => handlePaymentDetailChange(item.name, 'fisicoEditable', e.target.value)}
+                        placeholder="Monto físico"
+                        disabled={isSubmitting || isSavingDraft}
+                        required
+                      />
+                    ) : formatCurrency(fisicoItemParaDisplayValue)}</td>
+                    <td data-label="Diferencia" className={diferenciaItemNetaConJustificaciones !== 0 ? (diferenciaItemNetaConJustificaciones < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaItemNetaConJustificaciones)}</td>
+                    <td data-label="Justificaciones" className="justificaciones-cell">
                       {justsArray.length > 0 ? justsArray.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (finalIsFormEditable && puedeJustificarItemCurrent ? <span className="text-muted-italic">Click en lápiz para justificar</span> : (diferenciaItemBruta === 0 ? 'OK' : 'N/A'))}
                     </td>
-                    <td>
+                    <td data-label="Acciones">
                       {finalIsFormEditable && puedeJustificarItemCurrent && 
                         <button onClick={() => openItemJustificationModal(item)} className="action-icon-button justify" title="Justificar ítem" disabled={isSubmitting || isSavingDraft}>
                             <span className="material-symbols-outlined">edit_note</span>
@@ -1079,12 +1144,12 @@ function RectificarPage() {
                   )}
                 </div>
                 <table className="excel-style-table condensed"><tbody>
-                    <tr><td>Gastos</td><td>{formatCurrency(gastosSistemaAPI)}</td></tr>
-                    <tr><td>Total Gastos Rendidos</td><td>{formatCurrency(totalGastosRendidos)}</td></tr>
-                    <tr><td>Diferencia Gastos</td><td className={diferenciaGastos !==0 ? (diferenciaGastos > 0 ? 'text-green' : 'text-red') : ''}>{formatCurrency(diferenciaGastos)}</td></tr>
+                    <tr><td data-label="Concepto">Gastos</td><td data-label="Monto">{formatCurrency(gastosSistemaAPI)}</td></tr>
+                    <tr><td data-label="Concepto">Total Gastos Rendidos</td><td data-label="Monto">{formatCurrency(totalGastosRendidos)}</td></tr>
+                    <tr><td data-label="Concepto">Diferencia Gastos</td><td data-label="Monto" className={diferenciaGastos !==0 ? (diferenciaGastos > 0 ? 'text-green' : 'text-red') : ''}>{formatCurrency(diferenciaGastos)}</td></tr>
                 </tbody></table>
                 <h4>Detalle Gastos Rendidos:</h4>
-                {gastosRendidos.length > 0 ? (
+                {formState.gastosRendidos.length > 0 ? (
                   <table className="excel-style-table mini-table">
                     <thead>
                       <tr>
@@ -1096,21 +1161,24 @@ function RectificarPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {gastosRendidos.map((g, i) => (
+                      {formState.gastosRendidos.map((g, i) => (
                         <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td>{formatCurrency(g.monto)}</td>
-                          <td>{g.motivo}</td>
-                          <td>{g.comprobante || '-'}</td>
+                          <td data-label="#">{i + 1}</td>
+                          <td data-label="Monto">{formatCurrency(g.monto)}</td>
+                          <td data-label="Motivo">{g.motivo}</td>
+                          <td data-label="Comprobante">{g.comprobante || '-'}</td>
                           {finalIsFormEditable && (
-                            <td>
+                            <td data-label="Acción">
                               <button
                                 className="action-icon-button delete"
                                 title="Eliminar Gasto"
                                 type="button"
                                 disabled={isSubmitting || isSavingDraft}
                                 onClick={() => {
-                                  setGastosRendidos(prev => prev.filter((_, idx) => idx !== i));
+                                  setFormState(prev => ({
+                                    ...prev,
+                                    gastosRendidos: prev.gastosRendidos.filter((_, idx) => idx !== i)
+                                  }));
                                 }}
                               >
                                 <span className="material-symbols-outlined">delete</span>
@@ -1135,7 +1203,7 @@ function RectificarPage() {
                   )}
                 </div>
                 <h4>Detalle Boletas Ingresadas:</h4>
-                {boletasPendientes.length > 0 ? (
+                {formState.boletasPendientes.length > 0 ? (
                   <table className="excel-style-table mini-table">
                     <thead>
                       <tr>
@@ -1147,21 +1215,24 @@ function RectificarPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {boletasPendientes.map((b, i) => (
+                      {formState.boletasPendientes.map((b, i) => (
                         <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td>{b.numeroBoleta}</td>
-                          <td className={b.estadoBoleta === 'Rectificacion' ? 'text-red' : ''}>{formatCurrency(b.monto)}</td>
-                          <td>{b.estadoBoleta}</td>
+                          <td data-label="#">{i + 1}</td>
+                          <td data-label="Nº Boleta">{b.numeroBoleta}</td>
+                          <td data-label="Monto" className={b.estadoBoleta === 'Rectificacion' ? 'text-red' : ''}>{formatCurrency(b.monto)}</td>
+                          <td data-label="Estado">{b.estadoBoleta}</td>
                           {finalIsFormEditable && (
-                            <td>
+                            <td data-label="Acción">
                               <button
                                 className="action-icon-button delete"
                                 title="Eliminar Boleta"
                                 type="button"
                                 disabled={isSubmitting || isSavingDraft}
                                 onClick={() => {
-                                  setBoletasPendientes(prev => prev.filter((_, idx) => idx !== i));
+                                  setFormState(prev => ({
+                                    ...prev,
+                                    boletasPendientes: prev.boletasPendientes.filter((_, idx) => idx !== i)
+                                  }));
                                 }}
                               >
                                 <span className="material-symbols-outlined">delete</span>
@@ -1176,7 +1247,7 @@ function RectificarPage() {
             </section>
         </div>
 
-        {(pageMode === 'view_only' || pageMode === 'review') && existingRectification && (
+        {(formState.pageMode === 'view_only' || formState.pageMode === 'review') && formState.existingRectification && (
             <section className="solicitud-actual-card">
                 <h3>Detalles Solicitud de Rectificación</h3>
                 <div className="details-grid">
@@ -1234,6 +1305,7 @@ function RectificarPage() {
         {canSuperAdminDecide && (
           <div className="review-actions-form">
             <h3>Decisión Superadministrador</h3>
+
             <div className="form-group"><label htmlFor="superAdminMotivoDecision">Comentarios Adicionales (requerido para rechazar, 100 caracteres max.):</label><textarea id="superAdminMotivoDecision" maxLength={100} name="superAdminMotivoDecision" value={mainFormData.superAdminMotivoDecision} onChange={handleMainFormChange} rows="3" disabled={isSubmitting || !!success}/></div>
             <div className="action-buttons">
               <button onClick={() => handleApprovalAction('aprobada')} className="approve-button" disabled={isSubmitting || !!success}>Aprobar Solicitud</button>
@@ -1328,33 +1400,33 @@ function RectificarPage() {
                                     <th>Motivo</th>
                                     <th style={{width: '100px'}}>Tipo</th>
                                     <th style={{width: '130px'}}>Monto</th>
-                                    {finalIsFormEditable && <th>Acción</th>}
+                                    {finalIsFormEditable && <th data-label="Acción">Acción</th>}
                                 </tr>
                             </thead>
                             <tbody>
                                 {justificationsToViewInfo.justifications.map((j, idx) => (
                                     <tr key={idx}>
-                                        <td className="vj-cell-index">{idx + 1}</td>
-                                        <td className="vj-cell-motivo" title={j.motivo}>{j.motivo}</td>
-                                        <td className="vj-cell-tipo">{j.tipo === 'sobrante' ? 'Sobrante' : 'Faltante'}</td>
-                                        <td className="vj-cell-monto">{formatCurrency(j.monto)}</td>
+                                        <td data-label="N°" className="vj-cell-index">{idx + 1}</td>
+                                        <td data-label="Motivo" className="vj-cell-motivo" title={j.motivo}>{j.motivo}</td>
+                                        <td data-label="Tipo" className="vj-cell-tipo">{j.tipo === 'sobrante' ? 'Sobrante' : 'Faltante'}</td>
+                                        <td data-label="Monto" className="vj-cell-monto">{formatCurrency(j.monto)}</td>
                                         {finalIsFormEditable && (
-                                          <td>
+                                          <td data-label="Acción">
                                             <button
                                               className="action-icon-button delete"
                                               title="Eliminar Justificación"
                                               type="button"
                                               onClick={() => {
-                                                setItemJustifications(prev => {
-                                                  const name = justificationsToViewInfo.name;
-                                                  const arr = prev[name] || [];
-                                                  const newArr = arr.filter((_, i) => i !== idx);
-                                                  setJustificationsToViewInfo(prevInfo => ({ 
-                                                    ...prevInfo,
-                                                    justifications: newArr
-                                                  }));
-                                                  return { ...prev, [name]: newArr };
-                                                });
+                                                updateFormState(prev => ({
+                                                  itemJustifications: {
+                                                    ...prev.itemJustifications,
+                                                    [justificationsToViewInfo.name]: (prev.itemJustifications[justificationsToViewInfo.name] || []).filter((_, i) => i !== idx)
+                                                  }
+                                                }));
+                                                setJustificationsToViewInfo(prevInfo => ({
+                                                  ...prevInfo,
+                                                  justifications: (prevInfo.justifications || []).filter((_, i) => i !== idx)
+                                                }));
                                               }}
                                               disabled={isSubmitting || isSavingDraft}
                                             >

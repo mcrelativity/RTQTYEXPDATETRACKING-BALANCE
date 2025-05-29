@@ -1,0 +1,332 @@
+/* RectificarPage.css */
+/* Styles for RectificarPage responsiveness and specific component styling */
+
+/* General page container */
+.rectificar-page-container {
+    padding: 20px;
+    max-width: 1200px; /* Max width for larger screens */
+    margin: 0 auto; /* Center the content */
+}
+
+/* Header */
+.rectificar-page-header {
+    margin-bottom: 25px;
+}
+
+.rectificar-page-header .header-content-wrapper {
+    display: flex;
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px; /* Space between title and buttons */
+}
+
+.rectificar-page-header h1 {
+    font-size: 1.8em; /* Adjust as needed */
+    margin: 0;
+    flex-grow: 1; /* Allow title to take available space */
+}
+
+.rectificar-page-header .header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Cards */
+.session-info-card,
+.desglose-caja-card,
+.gastos-card,
+.boletas-card,
+.solicitud-actual-card {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.session-info-card .details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.session-info-card .details-grid p {
+    margin: 5px 0;
+    font-size: 0.95em;
+}
+
+/* Tables */
+.excel-style-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin-top: 15px;
+}
+
+.excel-style-table th,
+.excel-style-table td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.excel-style-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.excel-style-table input[type="text"] { /* Base style for text inputs in table */
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.excel-style-table .justificaciones-cell {
+    font-size: 0.85em;
+}
+
+.excel-style-table .justification-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    border-bottom: 1px dashed #eee;
+}
+.excel-style-table .justification-entry:last-child {
+    border-bottom: none;
+}
+
+/* Additional Actions Grid (Gastos & Boletas) */
+.additional-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* Stack on small screens by default */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+/* Base styles for .mini-table */
+.mini-table {
+    font-size: 0.85em;
+}
+
+.mini-table th,
+.mini-table td {
+    padding: 6px 8px;
+}
+
+/* Form Actions */
+.form-actions {
+    text-align: center;
+    margin-top: 30px;
+}
+
+/* Review Actions Form (Superadmin) */
+.review-actions-form {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.review-actions-form h3 {
+    margin-top: 0;
+}
+
+.review-actions-form .form-group {
+    margin-bottom: 15px;
+}
+
+.review-actions-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-height: 70px;
+}
+
+.review-actions-form .action-buttons { /* Base style for action buttons container */
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content { /* Base style for modal content */
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.modal-close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #777;
+}
+
+.modal-form .form-group {
+    margin-bottom: 15px;
+}
+
+.modal-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.modal-form input[type="text"],
+.modal-form select,
+.modal-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.modal-submit-button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+}
+
+/* View Justifications Modal */
+.view-justifications-modal-content {
+    max-width: 700px;
+}
+
+.view-justifications-table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.view-justifications-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.view-justifications-table th,
+.view-justifications-table td {
+    border: 1px solid #e0e0e0;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+.view-justifications-table th {
+    background-color: #f9f9f9;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* Utility classes */
+.text-red {
+    color: #dc3545 !important;
+}
+.text-green {
+    color: #28a745 !important;
+}
+.text-muted {
+    color: #6c757d !important;
+}
+.text-muted-italic {
+    color: #6c757d !important;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+.status-chip {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+.status-pendiente { background-color: #ffc107; color: #333; }
+.status-aprobada { background-color: #28a745; color: white; }
+.status-rechazada { background-color: #dc3545; color: white; }
+.status-sin_rectificar { background-color: #6c757d; color: white; }
+
+.action-icon-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    margin: 0 2px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.action-icon-button .material-symbols-outlined {
+    font-size: 20px;
+}
+.action-icon-button.justify { color: #007bff; }
+.action-icon-button.view-justs { color: #17a2b8; }
+.action-icon-button.delete { color: #dc3545; }
+.action-icon-button.attention { color: #ffc107; }
+.action-icon-button.accept { color: #28a745; }
+
+.action-icon-button:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.add-item-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    padding: 6px 12px;
+}
+
+.page-level-error, .page-level-success {
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 0.95em;
+}
+.page-level-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.page-level-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+/* Ensure inputs in tables don't break layout on small screens - base style */
+/* Specific responsive overrides for this are now in index.css */
+.excel-style-table td input[type="text"] { /* This is a more general rule, might conflict/be overridden by the one at line 67 */
+    max-width: 150px; /* Adjust as needed */
+}
+
+/* Removed all @media blocks as they have been moved to index.css */
