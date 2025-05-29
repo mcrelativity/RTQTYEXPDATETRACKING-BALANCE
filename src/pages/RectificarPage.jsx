@@ -552,7 +552,9 @@ function RectificarPage() {
     if (itemJustificationForm.motivo.trim().length > 100) {
         alert('El motivo no puede exceder los 100 caracteres.'); return;
     }
-    const keyToUpdate = currentItemForJustification.id === 'efectivo' ? DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash).display_name : currentItemForJustificacion.name;
+    const keyToUpdate = currentItemForJustification.id === 'efectivo'
+      ? DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash).display_name
+      : currentItemForJustification.name;
     setItemJustifications(prev => {
       const existingJustsArray = prev[keyToUpdate] || [];
       const montoFinal = tipo === 'sobrante' ? -Math.abs(monto) : Math.abs(monto);
@@ -1241,14 +1243,14 @@ function RectificarPage() {
         )}
       </div>
 
-      {isItemJustificationModalOpen && currentItemForJustificacion && (
+      {isItemJustificationModalOpen && currentItemForJustification && (
         <div className="modal-overlay open" onClick={() => setIsItemJustificationModalOpen(false) }>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="modal-close-button" onClick={() => setIsItemJustificationModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
-            <h3>Justificar: {currentItemForJustificacion.name}</h3>
+            <h3>Justificar: {currentItemForJustification.name}</h3>
             <form onSubmit={handleSaveItemJustification} className="modal-form">
-              <p>Monto Sistema: {formatCurrency(currentItemForJustificacion.sistema)}</p>
-              <p>Monto Físico Ingresado (actual): {formatCurrency( parseFloat(parseInputAmount(currentItemForJustificacion.fisicoEditable)) || currentItemForJustificacion.sistema )}</p>
+              <p>Monto Sistema: {formatCurrency(currentItemForJustification.sistema)}</p>
+              <p>Monto Físico Ingresado (actual): {formatCurrency(parseFloat(parseInputAmount(currentItemForJustification.fisicoEditable)) || currentItemForJustification.sistema)}</p>
               <div className="form-group">
                 <label htmlFor="itemJustTipo">Tipo de Justificación:</label>
                 <select
