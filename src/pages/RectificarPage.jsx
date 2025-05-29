@@ -627,7 +627,13 @@ function RectificarPage() {
     if (!gastoForm.comprobante || gastoForm.comprobante.trim() === '') { alert('El número de comprobante es requerido.'); return; }
     if (gastoForm.motivo.trim().length > 50) { alert('El motivo del gasto no puede exceder los 50 caracteres.'); return; }
 
-    setGastosRendidos(prev => [...prev, { ...gastoForm, monto, timestamp: Date.now() }]);
+    setFormState(prev => ({
+      ...prev,
+      gastosRendidos: [
+        ...prev.gastosRendidos,
+        { ...gastoForm, monto, timestamp: Date.now() }
+      ]
+    }));
     setIsGastoModalOpen(false);
   };
 
@@ -648,7 +654,13 @@ function RectificarPage() {
     e.preventDefault();
     const monto = parseFloat(boletaForm.monto);
     if (isNaN(monto) || monto <= 0 || boletaForm.numeroBoleta.trim() === '') { alert('Monto válido y número de boleta son requeridos.'); return; }
-    setBoletasPendientes(prev => [...prev, { ...boletaForm, monto, timestamp: Date.now() }]);
+    setFormState(prev => ({
+      ...prev,
+      boletasPendientes: [
+        ...prev.boletasPendientes,
+        { ...boletaForm, monto, timestamp: Date.now() }
+      ]
+    }));
     setIsBoletaModalOpen(false);
   };
 
@@ -1429,7 +1441,8 @@ function RectificarPage() {
                                               title="Eliminar Justificación"
                                               type="button"
                                               onClick={() => {
-                                                updateFormState(prev => ({
+                                                setFormState(prev => ({
+                                                  ...prev,
                                                   itemJustifications: {
                                                     ...prev.itemJustifications,
                                                     [justificationsToViewInfo.name]: (prev.itemJustifications[justificationsToViewInfo.name] || []).filter((_, i) => i !== idx)
