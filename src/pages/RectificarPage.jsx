@@ -491,24 +491,20 @@ function RectificarPage() {
     }
   }, [formState, loadingState.isInitialLoading, loadingState.isDraftBeingApplied]);
   const handleSaveDraft = async () => {
-    if (!sessionData || userRole !== 'admin' || pageMode !== 'create') {
+    if (!formState.sessionData || userRole !== 'admin' || formState.pageMode !== 'create') {
       setError("Solo los administradores pueden guardar borradores en modo creación.");
       return;
     }
-    
     setIsSavingDraft(true);
     setError('');
     setSuccess('');
-    
     try {
-      const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
+      const draftRef = ref(database, `rectificationDrafts/${formState.sessionData.id}`);
       const lastEditedInfo = {
         email: currentUser?.email || 'N/A',
         timestamp: Date.now()
       };
-      
       const draftDataToSave = {
-        // Guardar todos los campos del formulario principal
         mainFormData: { ...formState.mainFormData },
         itemJustifications: formState.itemJustifications,
         gastosRendidos: formState.gastosRendidos,
@@ -516,17 +512,12 @@ function RectificarPage() {
         paymentDetails: formState.paymentDetails,
         lastEdited: lastEditedInfo
       };
-      
       await set(draftRef, sanitizeForFirebase(draftDataToSave));
-      
-      // Actualizar estado del borrador
       setDraftState(prev => ({ 
         ...prev, 
         lastEditInfo: lastEditedInfo 
       }));
-      
       showTempNotification('draft_saved', 'Borrador guardado exitosamente');
-      
     } catch (err) {
       console.error("Error guardando borrador:", err);
       setError('Error al guardar borrador: ' + err.message);
