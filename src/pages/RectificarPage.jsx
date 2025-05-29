@@ -835,6 +835,7 @@ function RectificarPage() {
   const totalJustificadoEfectivo = (justificacionesEfectivo || []).reduce((sum,j) => sum + (parseFloat(j.monto)||0), 0);
 
   const totalGastosRendidos = (formState.gastosRendidos || []).reduce((sum, g) => sum + g.monto, 0);
+  // Calcula la diferencia entre los gastos del sistema y los gastos rendidos
   const diferenciaGastos = formState.gastosSistemaAPI - totalGastosRendidos;
 
   // Lógica de cálculo de diferencias para el efectivo, incluyendo gastos y boletas.
@@ -1148,7 +1149,7 @@ function RectificarPage() {
                   )}
                 </div>
                 <table className="excel-style-table condensed"><tbody>
-                    <tr><td data-label="Concepto">Gastos</td><td data-label="Monto">{formatCurrency(gastosSistemaAPI)}</td></tr>
+                    <tr><td data-label="Concepto">Gastos</td><td data-label="Monto">{formatCurrency(formState.gastosSistemaAPI)}</td></tr>
                     <tr><td data-label="Concepto">Total Gastos Rendidos</td><td data-label="Monto">{formatCurrency(totalGastosRendidos)}</td></tr>
                     <tr><td data-label="Concepto">Diferencia Gastos</td><td data-label="Monto" className={diferenciaGastos !==0 ? (diferenciaGastos > 0 ? 'text-green' : 'text-red') : ''}>{formatCurrency(diferenciaGastos)}</td></tr>
                 </tbody></table>
