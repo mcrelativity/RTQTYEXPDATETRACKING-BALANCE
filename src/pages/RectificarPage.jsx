@@ -568,32 +568,43 @@ function RectificarPage() {
     setIsItemJustificationModalOpen(true);
   };
 
-  // Handler para cambios en el formulario de justificación de ítem
+  // Handler para cambios en el formulario de justificación de ítem (solo números enteros positivos en monto)
   const handleItemJustificationFormChange = (e) => {
     const { name, value } = e.target;
-    setItemJustificationForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'monto') {
+      // Solo permitir números enteros positivos
+      const cleaned = value.replace(/[^0-9]/g, '');
+      setItemJustificationForm(prev => ({ ...prev, [name]: cleaned }));
+    } else {
+      setItemJustificationForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
-  // (Eliminada duplicidad de handleSaveItemJustification)
-  // --- Guardar justificación de ítem en el estado correspondiente ---
+  // Guardar justificación de ítem en el estado atómico
   const handleSaveItemJustification = (e) => {
     e.preventDefault();
-    const monto = parseFloat(itemJustificationForm.monto);
+    const monto = parseInt(itemJustificationForm.monto, 10);
     const tipo = itemJustificationForm.tipo || 'faltante';
-    if (isNaN(monto) || monto <=0 || itemJustificationForm.motivo.trim() === '') { 
-        alert('Monto (mayor a cero) y motivo son requeridos para la justificación.'); return; 
+    if (isNaN(monto) || monto <= 0 || itemJustificationForm.motivo.trim() === '') {
+      alert('Monto (entero positivo) y motivo son requeridos para la justificación.'); return;
     }
     if (itemJustificationForm.motivo.trim().length > 100) {
-        alert('El motivo no puede exceder los 100 caracteres.'); return;
+      alert('El motivo no puede exceder los 100 caracteres.'); return;
     }
     const keyToUpdate = currentItemForJustification.id === 'efectivo'
       ? DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash).display_name
       : currentItemForJustification.name;
-    setItemJustifications(prev => {
-      const existingJustsArray = prev[keyToUpdate] || [];
+    setFormState(prev => {
+      const existingJustsArray = prev.itemJustifications[keyToUpdate] || [];
       const montoFinal = tipo === 'sobrante' ? -Math.abs(monto) : Math.abs(monto);
       const newJustificationEntry = { monto: montoFinal, motivo: itemJustificationForm.motivo.trim(), tipo, timestamp: Date.now() };
-      return { ...prev, [keyToUpdate]: [...existingJustsArray, newJustificationEntry] };
+      return {
+        ...prev,
+        itemJustifications: {
+          ...prev.itemJustifications,
+          [keyToUpdate]: [...existingJustsArray, newJustificationEntry]
+        }
+      };
     });
     setIsItemJustificationModalOpen(false);
   };
@@ -990,17 +1001,20 @@ function RectificarPage() {
                   <td data-label="Método">{efectivoConfig.display_name}</td>
                   <td data-label="Sistema">{formatCurrency(efectivoOdoo)}</td>
                   <td data-label="Físico">{finalIsFormEditable ? (
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      name="nuevoSaldoFinalRealEfectivo"
-                      value={typeof formState.mainFormData.nuevoSaldoFinalRealEfectivo === 'string' ? formState.mainFormData.nuevoSaldoFinalRealEfectivo : (formState.mainFormData.nuevoSaldoFinalRealEfectivo || '')}
-                      onChange={handleMainFormChange}
-                      placeholder="Monto físico actual"
-                      disabled={isSubmitting || isSavingDraft}
-                      required
-                    />
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        pattern="[0-9]*"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        name="nuevoSaldoFinalRealEfectivo"
+                        value={typeof formState.mainFormData.nuevoSaldoFinalRealEfectivo === 'string' ? formState.mainFormData.nuevoSaldoFinalRealEfectivo : (formState.mainFormData.nuevoSaldoFinalRealEfectivo || '')}
+                        onChange={handleMainFormChange}
+                        placeholder="Monto físico actual"
+                        disabled={isSubmitting || isSavingDraft}
+                        required
+                      />
                   ) : formatCurrency(efectivoFisicoParaDisplay)}</td>
                   <td data-label="Diferencia" className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
                   <td data-label="Justificaciones" className="justificaciones-cell">
@@ -1083,8 +1097,11 @@ function RectificarPage() {
                     <td data-label="Método">{item.name}</td><td data-label="Sistema">{formatCurrency(item.sistema)}</td>
                     <td data-label="Físico">{finalIsFormEditable ? (
                       <input
-                        type="text"
-                        inputMode="decimal"
+                        type="number"
+                        min="1"
+                        step="1"
+                        pattern="[0-9]*"
+                        inputMode="numeric"
                         autoComplete="off"
                         value={typeof item.fisicoEditable === 'string' ? item.fisicoEditable : (item.fisicoEditable || '')}
                         onChange={(e) => handlePaymentDetailChange(item.name, 'fisicoEditable', e.target.value)}
