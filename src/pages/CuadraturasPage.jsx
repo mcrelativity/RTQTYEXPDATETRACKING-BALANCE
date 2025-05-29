@@ -1,3 +1,23 @@
+import './CuadraturasSkeletonLoader.css';
+// Skeleton Loader para la tabla de cuadraturas
+function CuadraturasSkeletonLoader() {
+  return (
+    <div className="skeleton-loader">
+      <div className="skeleton-bar short" />
+      <div className="skeleton-bar medium" />
+      <div className="skeleton-bar" />
+      {[...Array(4)].map((_, i) => (
+        <div className="skeleton-table-row" key={i}>
+          <div className="skeleton-table-cell" />
+          <div className="skeleton-table-cell" />
+          <div className="skeleton-table-cell" />
+          <div className="skeleton-table-cell" />
+          <div className="skeleton-table-cell" />
+        </div>
+      ))}
+    </div>
+  );
+}
 // Página de Cuadraturas por Local
 // ---------------------------------------------
 // Este componente muestra la vista jerárquica de sesiones POS agrupadas por local, mes y día.
@@ -413,7 +433,7 @@ function CuadraturasPage() {
         </div>
 
         {apiError && <p className="error-message">{apiError}</p>}
-        {isLoading && hierarchicalData.length === 0 && <p style={{padding: '20px'}}>Cargando sesiones...</p>}
+        {isLoading && hierarchicalData.length === 0 && <CuadraturasSkeletonLoader />}
         
         {!isLoading && !apiError && (
             <>

@@ -1,0 +1,46 @@
+.rectificar-confirm-anim {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 10px 24px 10px;
+  min-height: 180px;
+  animation: fadeInScale 0.7s cubic-bezier(.4,1.4,.6,1) both;
+}
+.rectificar-confirm-anim .icon {
+  font-size: 3.5em;
+  margin-bottom: 18px;
+  animation: popIn 0.5s cubic-bezier(.4,1.4,.6,1);
+}
+.rectificar-confirm-anim .success {
+  color: #2ecc71;
+}
+.rectificar-confirm-anim .error {
+  color: #e74c3c;
+}
+.rectificar-confirm-anim .message {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.rectificar-confirm-anim .desc {
+  font-size: 1em;
+  color: #555;
+  text-align: center;
+}
+@keyframes fadeInScale {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  80% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@media (max-width: 600px) {
+  .rectificar-confirm-anim { padding: 18px 2vw 12px 2vw; min-height: 120px; }
+  .rectificar-confirm-anim .icon { font-size: 2.2em; }
+  .rectificar-confirm-anim .message { font-size: 1em; }
+}

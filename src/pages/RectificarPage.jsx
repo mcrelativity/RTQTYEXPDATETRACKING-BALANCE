@@ -1,42 +1,62 @@
-  // --- Manejo de cambios en los inputs de monto (parseo y actualización de estado) ---
-  // --- Manejo de cambios en el formulario principal ---
-  // Actualiza el estado del formulario principal según el input del usuario.
-  // --- Manejo de cambios en los detalles de pago (inputs de monto físico por método de pago) ---
-  // --- Abrir modal para agregar justificación a un método de pago ---
-  // --- Manejo de cambios en el formulario de justificación de ítem ---
-  // --- Guardar justificación de ítem en el estado correspondiente ---
-  // --- Abrir modal para agregar un gasto rendido ---
-  // --- Manejo de cambios en el formulario de gasto ---
-  // --- Guardar gasto rendido en el estado correspondiente ---
-  // --- Abrir modal para agregar una boleta pendiente/rectificada ---
-  // --- Manejo de cambios en el formulario de boleta ---
-  // --- Guardar boleta ingresada en el estado correspondiente ---
-  // --- Iniciar proceso de envío de solicitud de rectificación (abre modal de confirmación) ---
-  // --- Enviar solicitud de rectificación a Firebase ---
-  // --- Acción de aprobación/rechazo por parte del superadministrador ---
-  // --- Abrir modal para ver justificaciones de un método de pago ---
-  // --- Flags de permisos y edición de formulario ---
-  // Determina si el formulario es editable por un admin (en modo creación).
-  // Determina si un superadmin puede tomar una decisión sobre una solicitud pendiente.
-  // --- Cálculo de montos y diferencias para mostrar en la UI ---
-  // Calcula el monto de efectivo físico a mostrar, considerando el modo y rol.
-  // --- Genera el título de la página dinámicamente según el contexto y modo ---
-  // --- Renderizado condicional de estados de carga y error globales ---
-  // --- Variable final para determinar si el formulario debe ser editable ---
-  // Un admin en modo 'create' puede editar.
-  // Un superadmin viendo el borrador de un admin NO puede editar.
-  // --- Condición para mostrar el botón de justificar efectivo ---
 // Página de Rectificación de Caja
 // ---------------------------------------------
 // Este componente permite a los administradores y superadministradores revisar, justificar y rectificar diferencias de caja en sesiones POS.
 // Incluye lógica para cargar datos desde Odoo y Firebase, gestionar formularios, justificaciones, gastos, boletas y flujos de aprobación.
 // Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { database } from '../firebase/firebaseConfig';
 import { ref, push, serverTimestamp, get, update, set } from "firebase/database";
+import './RectificarConfirmAnimation.css';
+import './ModernSkeletonLoader.css';
+
+// --- Componentes auxiliares ---
+
+// Animación de confirmación o error tras enviar solicitud
+function RectificarConfirmAnimation({ success, message, desc }) {
+  return (
+    <div className="rectificar-confirm-anim">
+      <span className={`icon material-symbols-outlined ${success ? 'success' : 'error'}`}>{success ? 'check_circle' : 'cancel'}</span>
+      <div className="message">{message}</div>
+      {desc && <div className="desc">{desc}</div>}
+    </div>
+  );
+}
+
+// Modern Skeleton Loader con estructura similar a la página de rectificación
+function RectificarSkeletonLoader() {
+  return (
+    <div className="modern-skeleton-loader">
+      <div className="modern-skeleton-header" />
+      <div className="modern-skeleton-form">
+        {[...Array(2)].map((_, i) => (
+          <div className="modern-skeleton-form-row" key={i}>
+            <div className="modern-skeleton-form-label" />
+            <div className="modern-skeleton-form-input" />
+          </div>
+        ))}
+      </div>
+      <div className="modern-skeleton-table">
+        <div className="modern-skeleton-table-header">
+          <div className="modern-skeleton-table-header-cell" style={{width: '20%'}} />
+          <div className="modern-skeleton-table-header-cell" style={{width: '30%'}} />
+          <div className="modern-skeleton-table-header-cell" style={{width: '25%'}} />
+          <div className="modern-skeleton-table-header-cell" style={{width: '25%'}} />
+        </div>
+        {[...Array(4)].map((_, i) => (
+          <div className="modern-skeleton-table-row" key={i}>
+            <div className="modern-skeleton-table-cell" />
+            <div className="modern-skeleton-table-cell" />
+            <div className="modern-skeleton-table-cell" style={{width: '25%'}} />
+            <div className="modern-skeleton-table-cell" style={{width: '25%'}} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // --- Configuración de la API y métodos de pago por defecto ---
 // Estas constantes definen cómo la aplicación interactúa con servicios externos y cómo entiende los métodos de pago.
@@ -136,7 +156,8 @@ function sanitizeForFirebase(dataObject) {
 // --- Componente principal de la página de Rectificación ---
 // Gestiona la lógica de visualización, edición, justificación y envío de solicitudes de rectificación de caja.
 // Incluye manejo de estados, hooks de ciclo de vida, lógica de negocio y renderizado condicional.
-function RectificarPage() {
+function RectificarPage() {  
+  // --- Hooks de React Router y Auth ---
   const navigate = useNavigate(); // Hook para la navegación programática.
   const location = useLocation(); // Hook para acceder al estado pasado en la navegación.
   const { sessionId } = useParams(); // Hook para obtener el 'sessionId' de los parámetros de la URL.
@@ -160,18 +181,30 @@ function RectificarPage() {
   const [gastosRendidos, setGastosRendidos] = useState([]); // Array de gastos rendidos.
   const [boletasPendientes, setBoletasPendientes] = useState([]); // Array de boletas pendientes/rectificadas.
   const [gastosSistemaAPI, setGastosSistemaAPI] = useState(0); // Gastos de la sesión según Odoo.
+  
+  // --- Estados para la UI: carga, errores y feedback unificado ---
+  const [isLoading, setIsLoading] = useState(true); // Carga inicial de datos base
+  const [error, setError] = useState(''); // Mensaje de error general
+  const [success, setSuccess] = useState(''); // Mensaje de éxito para envío final
+  
+  // Estados para animación de confirmación
+  const [showConfirmAnim, setShowConfirmAnim] = useState(false);
+  const [confirmAnimSuccess, setConfirmAnimSuccess] = useState(true);
+  const [confirmAnimMsg, setConfirmAnimMsg] = useState('');
+  const [confirmAnimDesc, setConfirmAnimDesc] = useState('');
 
-  // --- Estados para la UI: carga, errores y mensajes de éxito ---
-  const [isLoading, setIsLoading] = useState(true); // Indica si la página está cargando datos.
-  const [error, setError] = useState(''); // Mensaje de error general.
-  const [success, setSuccess] = useState(''); // Mensaje de éxito para envío final.
-
-  // --- Estados para controlar acciones de envío y guardado de borrador ---
-  const [isSubmitting, setIsSubmitting] = useState(false); // Indica si se está enviando la rectificación.
-  const [isSavingDraft, setIsSavingDraft] = useState(false); // Indica si se está guardando un borrador.
-  const [draftSavedSuccess, setDraftSavedSuccess] = useState(false); // Feedback: borrador guardado exitosamente.
-  const [draftLoadedSuccess, setDraftLoadedSuccess] = useState(false); // Feedback: borrador cargado exitosamente.
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // Controla visibilidad del modal de confirmación.
+  // Estados para feedback temporal unificado
+  const [tempNotification, setTempNotification] = useState({
+    show: false,
+    type: '', // 'draft_saved', 'draft_loaded'
+    message: '',
+    duration: 3000
+  });
+  
+  // --- Estados para controlar acciones de envío y guardado ---
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // --- Estados para los modales de ingreso de datos (justificaciones, gastos, boletas) ---
   const [isItemJustificationModalOpen, setIsItemJustificationModalOpen] = useState(false);
@@ -182,18 +215,140 @@ function RectificarPage() {
   const [gastoForm, setGastoForm] = useState({ monto: '', comprobante: '', motivo: '' });
 
   const [isBoletaModalOpen, setIsBoletaModalOpen] = useState(false);
-  const [boletaForm, setBoletaForm] = useState({ monto: '', numeroBoleta: '', estadoBoleta: 'Pendiente' });
-
-  const [isViewJustificationsModalOpen, setIsViewJustificationsModalOpen] = useState(false);
+  const [boletaForm, setBoletaForm] = useState({ monto: '', numeroBoleta: '', estadoBoleta: 'Pendiente' });  
+  
+  const [isViewJustificationsModalOpen, setIsViewJustificationsModalOpen] = useState(false);  
   const [justificationsToViewInfo, setJustificationsToViewInfo] = useState({ name: '', justifications: [] });
+
+  // Estados optimizados para el manejo de borradores
+  const [draftState, setDraftState] = useState({
+    pending: null,        // Borrador pendiente de aplicar
+    lastEditInfo: null,   // Info de última edición
+    isLoading: false,     // Solo para la carga desde Firebase
+    hasShownNotification: false  // Bandera para controlar notificación única
+  });
+    // Estado unificado de carga
+  const [loadingState, setLoadingState] = useState({
+    isInitialLoading: true,    // Carga inicial de datos
+    isReadyToShow: false,      // UI principal lista para mostrar
+    hasError: false,           // Si hay algún error crítico
+    isDraftBeingApplied: false // Flag para indicar que se está aplicando borrador
+  });
+
+  // Refs para evitar bucles infinitos
+  const hasDraftBeenProcessedRef = useRef(false);
+  const sessionIdRef = useRef(null);
+
+  // --- Funciones useCallback ---
+  
+  // --- Función utilitaria para mostrar notificaciones temporales ---
+  const showTempNotification = useCallback((type, message, duration = 3000) => {
+    setTempNotification({ show: true, type, message, duration });
+    setTimeout(() => {
+      setTempNotification(prev => ({ ...prev, show: false }));
+    }, duration);  
+  }, []);
+
+  // --- Función utilitaria para debugging del estado del formulario ---
+  const logCurrentFormState = useCallback((moment) => {
+    console.log(`[DEBUG] Estado del formulario ${moment}:`, {
+      mainFormData: mainFormData,
+      itemJustifications: itemJustifications,
+      gastosRendidos: gastosRendidos,
+      boletasPendientes: boletasPendientes,
+      paymentDetails: paymentDetails,
+      loadingState: loadingState
+    });
+  }, [mainFormData, itemJustifications, gastosRendidos, boletasPendientes, paymentDetails, loadingState]);
+
+  // --- Función optimizada para aplicar borrador de forma directa y confiable ---
+  const applyDraftDataDirectly = useCallback((draftData) => {
+    console.log('[RectificarPage] Aplicando borrador directamente:', draftData);
+    console.log('[DEBUG] Estado del formulario ANTES de aplicar borrador');
+    
+    return new Promise((resolve) => {
+      try {
+        // Aplicar todos los estados de forma secuencial y sincronizada
+        
+        // 1. Aplicar datos principales de forma segura
+        if (draftData.mainFormData?.nuevoSaldoFinalRealEfectivo !== undefined) {
+          const newMainFormData = {
+            nuevoSaldoFinalRealEfectivo: String(draftData.mainFormData.nuevoSaldoFinalRealEfectivo),
+            superAdminMotivoDecision: String(draftData.mainFormData.superAdminMotivoDecision || '')
+          };
+          setMainFormData(prev => ({ ...prev, ...newMainFormData }));
+          console.log('[DEBUG] MainFormData aplicado:', newMainFormData);
+        }
+        
+        // 2. Aplicar justificaciones de forma segura
+        if (draftData.itemJustifications && typeof draftData.itemJustifications === 'object') {
+          const justifications = { ...draftData.itemJustifications };
+          setItemJustifications(justifications);
+          console.log('[DEBUG] ItemJustifications aplicado:', justifications);
+        }
+        
+        // 3. Aplicar gastos rendidos de forma segura
+        if (Array.isArray(draftData.gastosRendidos)) {
+          const gastos = [...draftData.gastosRendidos];
+          setGastosRendidos(gastos);
+          console.log('[DEBUG] GastosRendidos aplicado:', gastos.length, 'items');
+        }
+        
+        // 4. Aplicar boletas pendientes de forma segura
+        if (Array.isArray(draftData.boletasPendientes)) {
+          const boletas = [...draftData.boletasPendientes];
+          setBoletasPendientes(boletas);
+          console.log('[DEBUG] BoletasPendientes aplicado:', boletas.length, 'items');
+        }
+        // 5. Aplicar paymentDetails de borrador si existen
+        if (Array.isArray(draftData.paymentDetails)) {
+          const pd = draftData.paymentDetails.map(item => ({ ...item }));
+          setPaymentDetails(pd);
+          console.log('[DEBUG] PaymentDetails aplicado:', pd.length, 'items');
+        }
+        
+        // 5. Aplicar detalles de pago de forma segura y robusta
+        if (Array.isArray(draftData.paymentDetails)) {
+          const payments = draftData.paymentDetails.map(payment => ({
+            ...payment,
+            fisicoEditable: String(payment.fisicoEditable || ''),
+            sistema: Number(payment.sistema || 0)
+          }));
+          setPaymentDetails(payments);
+          console.log('[DEBUG] PaymentDetails aplicado:', payments.length, 'items');
+        }
+        
+        console.log('[RectificarPage] Borrador aplicado exitosamente - todos los estados actualizados');
+        // Timeout aumentado para garantizar que todos los setState se procesen completamente
+        setTimeout(() => {
+          console.log('[DEBUG] Estado del formulario DESPUÉS de aplicar borrador');
+          console.log('[RectificarPage] Confirmando aplicación exitosa del borrador');
+          resolve(true);        
+        }, 500); // Aumentado a 500ms para debugging
+        
+      } catch (error) {
+        console.error('[RectificarPage] Error aplicando borrador:', error);
+        resolve(false);
+      }
+    });
+  }, []);
+
+  // Función simplificada para verificar si hay datos de borrador válidos
+  const hasDraftData = useCallback((draft) => {
+    return draft && (
+      draft.mainFormData?.nuevoSaldoFinalRealEfectivo ||
+      (draft.itemJustifications && Object.keys(draft.itemJustifications || {}).length > 0) ||
+      (Array.isArray(draft.gastosRendidos) && draft.gastosRendidos.length > 0) ||
+      (Array.isArray(draft.boletasPendientes) && draft.boletasPendientes.length > 0) ||
+      (Array.isArray(draft.paymentDetails) && draft.paymentDetails.length > 0)
+    );
+  }, []);
 
   // --- Función memoizada para cargar los datos iniciales de la sesión desde Odoo y Firebase ---
   // Esta función establece los datos base de la sesión, pagos, y cualquier rectificación existente.
   // Es el primer paso en la carga de datos de la página.
   const loadInitialData = useCallback(async (passedSessionData, passedMode, passedReqId, urlSessionIdParam) => {
     setIsLoading(true); setError(''); setSuccess('');
-    setDraftLoadedSuccess(false); 
-    setDraftSavedSuccess(false);
 
     let sessionToUse = passedSessionData;
     let modeToUse = passedMode || 'view_only';
@@ -265,124 +420,96 @@ function RectificarPage() {
           fisicoEditable: fisicoEditable
         };
       }).filter(p => p !== null);
-      setPaymentDetails(initialPaymentDetails);
-  
-      const efectivoFisicoOdoo = sessionToUse.cash_register_balance_end_real;
+      setPaymentDetails(initialPaymentDetails);      const efectivoFisicoOdoo = sessionToUse.cash_register_balance_end_real;
       const efectivoFisicoInicialParaForm = (modeToUse !== 'create' && loadedExistingRectification?.rectificationDetails?.ajusteSaldoEfectivo?.montoAjustado !== undefined)
         ? loadedExistingRectification.rectificationDetails.ajusteSaldoEfectivo.montoAjustado.toString()
-        : (efectivoFisicoOdoo === null || efectivoFisicoOdoo === undefined ? '' : String(efectivoFisicoOdoo));
-  
+        : (efectivoFisicoOdoo === null || efectivoFisicoOdoo === undefined ? '' : String(efectivoFisicoOdoo));      // Solo establecer los datos del formulario si NO hay un borrador siendo aplicado
+      // Verificar el estado de carga del borrador en lugar de la existencia del borrador
       setMainFormData({
         nuevoSaldoFinalRealEfectivo: efectivoFisicoInicialParaForm,
         superAdminMotivoDecision: (modeToUse === 'create' || !loadedExistingRectification) ? '' : (loadedExistingRectification?.rejectionReason || ''),
       });
-  
+      // Eliminar cualquier bucle: no se mantiene el estado anterior, solo se setea una vez.
     } catch (err) { setError('Error al cargar datos detallados.'); }
     finally { setIsLoading(false); }
-  }, [userRole]); 
-  
-  // --- useEffect para la carga inicial de datos cuando el componente se monta o sessionId/location.state cambian ---
+  }, [userRole]);// --- useEffect para la carga inicial de datos cuando el componente se monta o sessionId/location.state cambian ---
+  // Efecto unificado: carga inicial + borrador antes de renderizar UI
   useEffect(() => {
-    const stateFromNavigation = location.state;
-    const performInitialLoad = async () => {
-      // Llama a loadInitialData, pasando el sessionId de la URL como urlSessionIdParam.
-      await loadInitialData(
-        stateFromNavigation?.sessionInitialData,
-        stateFromNavigation?.mode,
-        stateFromNavigation?.existingRequestId,
-        sessionId 
-      );
-    };
-    if (sessionId) { // Asegura que tenemos un sessionId antes de intentar cargar.
-      performInitialLoad();
-    } else {
-      setError("ID de sesión no encontrado.");
-      setIsLoading(false);
-    }
-  }, [sessionId, location.state, loadInitialData]); 
-  
-  // --- useEffect para cargar un borrador guardado, si aplica ---
-  // Se ejecuta después de que la carga inicial (isLoading=false) haya terminado
-  // y los datos necesarios como sessionData y currentUser estén disponibles.
-  useEffect(() => {
-    const stateFromNavigation = location.state;
-
-    // Función interna para encapsular la lógica de carga de borrador con logs y consistencia.
-    const tryLoadRelevantDraft = async () => {
-      if (!sessionData?.id || !currentUser?.uid) return;
-
-      const shouldLoadDraft =
-        (!existingRectification && sessionData?.id && userRole === 'admin') ||
-        (!existingRectification && sessionData?.id && userRole === 'superadmin' && location.state?.viewDraft);
-
-      if (shouldLoadDraft) {
-        try {
-          console.log('[RectificarPage] Intentando cargar borrador para sesión:', sessionData.id, 'usuario:', currentUser.uid, 'rol:', userRole);
-          const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
-          const snap = await get(draftRef);
+    let cancelled = false;
+    (async () => {
+      // 1) Ocultar UI principal y marcar borrador en proceso
+      setLoadingState(s => ({ ...s, isReadyToShow: false, isDraftBeingApplied: true }));
+      try {
+        // 2) Carga inicial de datos (Odoo y posible rectificación existente)
+        await loadInitialData(
+          location.state?.sessionInitialData,
+          location.state?.mode,
+          location.state?.existingRequestId,
+          sessionId
+        );
+        if (cancelled) return;
+        // 3) Carga y aplica borrador (admin o superadmin)
+        if (sessionId && (userRole === 'admin' || userRole === 'superadmin')) {
+          const snap = await get(ref(database, `rectificationDrafts/${sessionId}`));
+          if (cancelled) return;
           if (snap.exists()) {
-            const loadedDraft = snap.val();
-            // Validar y aplicar todos los campos del borrador de forma consistente
-            setMainFormData(prev => ({
-              ...prev,
-              nuevoSaldoFinalRealEfectivo: loadedDraft.mainFormData?.nuevoSaldoFinalRealEfectivo ?? '',
-              superAdminMotivoDecision: ''
-            }));
-            setItemJustifications(loadedDraft.itemJustifications || {});
-            setGastosRendidos(Array.isArray(loadedDraft.gastosRendidos) ? loadedDraft.gastosRendidos : []);
-            setBoletasPendientes(Array.isArray(loadedDraft.boletasPendientes) ? loadedDraft.boletasPendientes : []);
-            if (Array.isArray(loadedDraft.paymentDetails) && loadedDraft.paymentDetails.length > 0) {
-              setPaymentDetails(loadedDraft.paymentDetails);
-            } else {
-              // Si no hay paymentDetails en el borrador, mantener los actuales
-              console.warn('[RectificarPage] Borrador cargado sin paymentDetails, se mantienen los existentes.');
-            }
-            setDraftLoadedSuccess(true);
-            console.log('[RectificarPage] Borrador cargado exitosamente:', loadedDraft);
-            setTimeout(() => setDraftLoadedSuccess(false), 3000);
-          } else {
-            console.log('[RectificarPage] No existe borrador para la sesión:', sessionData.id);
+            const draft = snap.val();
+            // Guardar info de última edición
+            setDraftState(d => ({ ...d, lastEditInfo: draft.lastEdited || null }));
+            // Aplicar datos del borrador
+            await applyDraftDataDirectly(draft);
+            showTempNotification('draft_loaded', 'Borrador cargado exitosamente');
           }
-        } catch (draftError) {
-          console.error('[RectificarPage] Error cargando borrador colaborativo:', draftError);
         }
-      } else {
-        console.log('[RectificarPage] No corresponde cargar borrador para el estado actual.');
+      } catch (e) {
+        console.error('Error inicializando página de rectificación:', e);
+        setLoadingState(s => ({ ...s, hasError: true }));
+      } finally {
+        if (!cancelled) {
+          // 4) Mostrar UI con todos los datos aplicados
+          setLoadingState(s => ({ ...s, isReadyToShow: true, isDraftBeingApplied: false }));
+        }
       }
-    };
-
-    if (!isLoading && sessionData && currentUser) {
-      tryLoadRelevantDraft();
-    }
-  }, [isLoading, pageMode, existingRectification, sessionData, currentUser, userRole, location.state]);
-
-  // --- Guardar el borrador colaborativo (accesible por cualquier admin) ---
+    })();
+    return () => { cancelled = true; };
+  }, [sessionId, userRole, loadInitialData]);
   const handleSaveDraft = async () => {
     if (!sessionData || userRole !== 'admin' || pageMode !== 'create') {
       setError("Solo los administradores pueden guardar borradores en modo creación.");
       return;
     }
+    
     setIsSavingDraft(true);
     setError('');
     setSuccess('');
-    setDraftSavedSuccess(false);
-    setDraftLoadedSuccess(false);
+    
     try {
       const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
+      const lastEditedInfo = {
+        email: currentUser?.email || 'N/A',
+        timestamp: Date.now()
+      };
+      
       const draftDataToSave = {
-        mainFormData: {
-          nuevoSaldoFinalRealEfectivo: mainFormData.nuevoSaldoFinalRealEfectivo
-        },
+        // Guardar todos los campos del formulario principal
+        mainFormData: { ...mainFormData },
         itemJustifications,
         gastosRendidos,
         boletasPendientes,
-        paymentDetails
+        paymentDetails,
+        lastEdited: lastEditedInfo
       };
+      
       await set(draftRef, sanitizeForFirebase(draftDataToSave));
-      setDraftSavedSuccess(true);
-      setTimeout(() => {
-        setDraftSavedSuccess(false);
-      }, 3000);
+      
+      // Actualizar estado del borrador
+      setDraftState(prev => ({ 
+        ...prev, 
+        lastEditInfo: lastEditedInfo 
+      }));
+      
+      showTempNotification('draft_saved', 'Borrador guardado exitosamente');
+      
     } catch (err) {
       console.error("Error guardando borrador:", err);
       setError('Error al guardar borrador: ' + err.message);
@@ -447,7 +574,7 @@ function RectificarPage() {
     if (itemJustificationForm.motivo.trim().length > 100) {
         alert('El motivo no puede exceder los 100 caracteres.'); return;
     }
-    const keyToUpdate = currentItemForJustification.id === 'efectivo' ? DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash).display_name : currentItemForJustification.name;
+    const keyToUpdate = currentItemForJustification.id === 'efectivo' ? DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash).display_name : currentItemForJustificacion.name;
     setItemJustifications(prev => {
       const existingJustsArray = prev[keyToUpdate] || [];
       const montoFinal = tipo === 'sobrante' ? -Math.abs(monto) : Math.abs(monto);
@@ -586,9 +713,26 @@ function RectificarPage() {
     try {
       await push(ref(database, 'rectificationRequests'), rectificationRequestToSave);
       await clearDraftAfterSubmit();
-      setSuccess('Solicitud de rectificación enviada.'); setTimeout(() => navigate('/cuadraturas'), 2500);
-    } catch (firebaseError) { setError('Error al guardar: ' + firebaseError.message);
-    } finally { setIsSubmitting(false); setShowConfirmModal(false); }
+      setSuccess('Solicitud de rectificación enviada.');
+      setShowConfirmAnim(true);
+      setConfirmAnimSuccess(true);
+      setConfirmAnimMsg('¡Solicitud enviada con éxito!');
+      setConfirmAnimDesc('Serás redirigido automáticamente.');
+      setTimeout(() => {
+        setShowConfirmAnim(false);
+        navigate('/cuadraturas');
+      }, 2200);
+    } catch (firebaseError) {
+      setError('Error al guardar: ' + firebaseError.message);
+      setShowConfirmAnim(true);
+      setConfirmAnimSuccess(false);
+      setConfirmAnimMsg('Ocurrió un error al enviar la solicitud');
+      setConfirmAnimDesc(firebaseError.message);
+      setTimeout(() => setShowConfirmAnim(false), 2500);
+    } finally {
+      setIsSubmitting(false);
+      setShowConfirmModal(false);
+    }
   };
 
   // --- Acción de aprobación/rechazo por parte del superadministrador ---
@@ -702,10 +846,11 @@ function RectificarPage() {
     if (pageMode === 'view_only' && !existingRectification) return `Detalle Sesión (Sin Rectificar): ${sessionName}`;
     return `Rectificación Sesión: ${sessionName}`;
   };
-  
-  if (isLoading) return <div className="page-loading">Cargando datos de rectificación...</div>;
-  if (error && !sessionData && !isLoading) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
-  if (!sessionData && !isLoading) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
+    // Renderizado condicional optimizado
+  if (!loadingState.isReadyToShow) return <RectificarSkeletonLoader />;
+  if (showConfirmAnim) return <RectificarConfirmAnimation success={confirmAnimSuccess} message={confirmAnimMsg} desc={confirmAnimDesc} />;
+  if (error && !sessionData && !isLoading && !draftState.isApplying) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
+  if (!sessionData && !isLoading && !draftState.isApplying) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
  
   // Variable final para determinar si el formulario debe ser editable.
   // Un admin en modo 'create' puede editar.
@@ -716,8 +861,55 @@ function RectificarPage() {
   const puedeJustificarEfectivoCalculated = finalIsFormEditable && (diferenciaBrutaConBoletas !== 0 || diferenciaEfectivoNeta !== 0);
 
 
+  // Utilidad para formatear fecha/hora legible
+  function formatDateTimeDraft(ts) {
+    if (!ts) return '';
+    try {
+      const date = new Date(ts);
+      return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch { return ts; }
+  }
   return (
     <div className="rectificar-page-container">
+      {/* Notificación temporal unificada */}
+      {tempNotification.show && (
+        <div style={{
+          position: 'fixed',
+          top: 20,
+          right: 20,
+          zIndex: 1000,
+          background: tempNotification.type === 'draft_saved' ? '#4caf50' : '#2196f3',
+          color: 'white',
+          padding: '12px 16px',
+          borderRadius: 8,
+          fontSize: '14px',
+          fontWeight: 500,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+        }}>
+          {tempNotification.message}
+        </div>
+      )}
+      
+      {/* Alerta persistente de última edición de borrador */}
+      {loadingState.isReadyToShow && draftState.lastEditInfo && (
+        <div style={{
+          margin: '10px 0 0 0', 
+          padding: '7px 14px', 
+          background: '#e3f2fd', 
+          color: '#1976d2', 
+          borderRadius: 6, 
+          fontSize: '0.98em', 
+          display: 'inline-block', 
+          minWidth: 320
+        }}>
+          <span style={{fontWeight: 500}}>Última edición de borrador:</span> {draftState.lastEditInfo.email || 'N/A'}
+          {draftState.lastEditInfo.timestamp && (
+            <span style={{marginLeft: 10, color: '#1565c0'}}>
+              ({formatDateTimeDraft(draftState.lastEditInfo.timestamp)})
+            </span>
+          )}
+        </div>
+      )}
       <header className="rectificar-page-header">
         <div className="header-content-wrapper">
             <h1>{getPageTitle()}</h1>
@@ -736,15 +928,7 @@ function RectificarPage() {
             </div>
         </div>
       </header>
-      {error && <p className="error-message page-level-error">{error}</p>}
-      {success && <p className="success-message page-level-success">{success}</p>}
-      
-      {finalIsFormEditable && draftSavedSuccess && !isSavingDraft &&
-        <p className="draft-feedback-message page-level-draft-success">¡Borrador guardado exitosamente!</p>
-      }
-      {draftLoadedSuccess && !isLoading &&
-        <p className="draft-feedback-message page-level-draft-loaded">Borrador anterior cargado.</p>
-      }
+      {error && <p className="error-message page-level-error">{error}</p>}      {success && <p className="success-message page-level-success">{success}</p>}
 
       <div className="rectificar-main-content">
         
@@ -1079,23 +1263,23 @@ function RectificarPage() {
         )}
       </div>
 
-      {isItemJustificationModalOpen && currentItemForJustification && (
+      {isItemJustificationModalOpen && currentItemForJustificacion && (
         <div className="modal-overlay open" onClick={() => setIsItemJustificationModalOpen(false) }>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="modal-close-button" onClick={() => setIsItemJustificationModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
-            <h3>Justificar: {currentItemForJustification.name}</h3>
+            <h3>Justificar: {currentItemForJustificacion.name}</h3>
             <form onSubmit={handleSaveItemJustification} className="modal-form">
-              <p>Monto Sistema: {formatCurrency(currentItemForJustification.sistema)}</p>
-              <p>Monto Físico Ingresado (actual): {formatCurrency( parseFloat(parseInputAmount(currentItemForJustification.fisicoEditable)) || currentItemForJustification.sistema )}</p>
+              <p>Monto Sistema: {formatCurrency(currentItemForJustificacion.sistema)}</p>
+              <p>Monto Físico Ingresado (actual): {formatCurrency( parseFloat(parseInputAmount(currentItemForJustificacion.fisicoEditable)) || currentItemForJustificacion.sistema )}</p>
               <div className="form-group">
                 <label htmlFor="itemJustTipo">Tipo de Justificación:</label>
                 <select
                   id="itemJustTipo"
+                 
                   name="tipo"
                   value={itemJustificationForm.tipo || 'faltante'}
                   onChange={e => setItemJustificationForm(prev => ({ ...prev, tipo: e.target.value }))}
-                  required
-                >
+                  required                >
                   <option value="faltante">Faltante</option>
                   <option value="sobrante">Sobrante</option>
                 </select>
@@ -1110,7 +1294,7 @@ function RectificarPage() {
       {isGastoModalOpen && (
         <div className="modal-overlay open" onClick={() => setIsGastoModalOpen(false) }>
            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="modal-close-button" onClick={() => setIsGastoModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
+                       <button type="button" className="modal-close-button" onClick={() => setIsGastoModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
             <h3>Rendir Gasto</h3>
             <form onSubmit={handleSaveGasto} className="modal-form">
                 <div className="form-group"><label htmlFor="gastoMonto">Monto:</label><input type="text" id="gastoMonto" name="monto" value={gastoForm.monto} onChange={handleGastoFormChange} required /></div>
@@ -1209,8 +1393,7 @@ function RectificarPage() {
                     </p>
                 )}
             </div>
-        </div>
-      )}
+        </div>      )}
     </div>
   );
 }

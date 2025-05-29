@@ -1,3 +1,204 @@
+/* Alerta visual para borrador cargado */
+.draft-alert-loaded {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1.5px solid #90caf9;
+  border-radius: 7px;
+  padding: 12px 18px;
+  margin: 18px 0 10px 0;
+  font-size: 1.08em;
+  box-shadow: 0 2px 8px 0 rgba(21,101,192,0.07);
+  animation: fadeInDraftAlert 0.7s;
+}
+.draft-alert-loaded .material-symbols-outlined {
+  font-size: 1.5em;
+  vertical-align: middle;
+}
+@keyframes fadeInDraftAlert {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+/* ----------------- MEJORAS DE RESPONSIVIDAD Y BOTONES PARA RECTIFICAR ----------------- */
+@media (max-width: 900px) {
+  .form-actions, .review-actions-form, .button-group, .confirm-modal-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin: 0 auto 12px auto !important;
+  }
+  .form-actions button, .review-actions-form button, .button-group button, .confirm-modal-actions button {
+    width: 100% !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    font-size: 1.05em !important;
+    padding: 13px 0 !important;
+    border-radius: 7px !important;
+  }
+  .modal-content, .modal-form {
+    padding: 10px 2vw !important;
+  }
+}
+@media (max-width: 600px) {
+  .form-actions, .review-actions-form, .button-group, .confirm-modal-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin: 0 auto 8px auto !important;
+  }
+  .form-actions button, .review-actions-form button, .button-group button, .confirm-modal-actions button {
+    width: 100% !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    font-size: 0.98em !important;
+    padding: 10px 0 !important;
+    border-radius: 6px !important;
+  }
+  .modal-content, .modal-form {
+    padding: 6px 1vw !important;
+  }
+}
+/* ----------------- MEJORAS DE RESPONSIVIDAD Y DISTRIBUCIÓN DE BOTONES ----------------- */
+@media (max-width: 900px) {
+  .form-actions, .review-actions-form, .button-group {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  .form-actions button, .review-actions-form button, .button-group button {
+    width: 100% !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+  }
+  .modal-content, .modal-form {
+    padding: 10px 2vw !important;
+  }
+}
+@media (max-width: 600px) {
+  .form-actions, .review-actions-form, .button-group {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .form-actions button, .review-actions-form button, .button-group button {
+    width: 100% !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    font-size: 0.95em !important;
+    padding: 10px 0 !important;
+  }
+  .modal-content, .modal-form {
+    padding: 6px 1vw !important;
+  }
+}
+/* ----------------- RESPONSIVE DESIGN PARA TODA LA APP ----------------- */
+@media (max-width: 900px) {
+  #root, .page-container, .cuadraturas-hierarchical-view, .rectificar-page-header, .modal-content, .product-details-list {
+    max-width: 98vw !important;
+    padding: 10px 2vw !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .card, .modal-content, .product-details-list {
+    padding: 10px 2vw !important;
+  }
+  .draft-feedback-message, .error-message {
+    font-size: 0.95em;
+    padding: 8px 4px;
+  }
+}
+@media (max-width: 600px) {
+  #root, .page-container, .cuadraturas-hierarchical-view, .rectificar-page-header, .modal-content, .product-details-list {
+    padding: 2px 0 !important;
+    max-width: 100vw !important;
+  }
+  .cuadraturas-header-title, .rectificar-page-header h1 {
+    font-size: 1em !important;
+  }
+  .cuadraturas-header-container, .rectificar-page-header {
+    padding: 4px 0 !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .sessions-table th, .sessions-table td, .excel-style-table th, .excel-style-table td {
+    padding: 6px 2px !important;
+    font-size: 0.8em !important;
+  }
+  .sessions-table, .excel-style-table {
+    font-size: 0.8em !important;
+  }
+  .day-list-item {
+    padding: 8px 8px 8px 18px !important;
+    font-size: 0.95em !important;
+  }
+  .active-day-sessions-container, .rectificar-main-content {
+    padding: 8px 2px !important;
+  }
+  .modal-content {
+    min-width: 90vw !important;
+    max-width: 98vw !important;
+  }
+  .draft-button, .submit-rectification-button, .add-item-button {
+    font-size: 0.9em !important;
+    padding: 8px 10px !important;
+  }
+}
+/* ----------------- RESPONSIVE DESIGN PARA CUADRATURAS ----------------- */
+@media (max-width: 900px) {
+  .page-container, .cuadraturas-hierarchical-view {
+    max-width: 98vw;
+    padding: 10px 2vw;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .cuadraturas-header-container {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 0;
+  }
+  .cuadraturas-header-title {
+    font-size: 1.2em;
+    padding: 0;
+  }
+  .cuadraturas-content-area {
+    padding: 10px 0;
+  }
+  .sessions-table-container {
+    padding: 0;
+  }
+}
+@media (max-width: 600px) {
+  .page-container, .cuadraturas-hierarchical-view {
+    padding: 2px 0;
+    max-width: 100vw;
+  }
+  .cuadraturas-header-title {
+    font-size: 1em;
+  }
+  .cuadraturas-header-container {
+    padding: 4px 0;
+  }
+  .sessions-table th, .sessions-table td {
+    padding: 6px 2px;
+    font-size: 0.8em;
+  }
+  .sessions-table {
+    font-size: 0.8em;
+  }
+  .day-list-item {
+    padding: 8px 8px 8px 18px;
+    font-size: 0.95em;
+  }
+  .active-day-sessions-container {
+    padding: 8px 2px;
+  }
+}
 
 .rectificar-page-header .header-content-wrapper {
   display: flex;
