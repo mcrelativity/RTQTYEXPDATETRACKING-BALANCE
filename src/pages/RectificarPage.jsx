@@ -5,6 +5,7 @@
 // Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { database } from '../firebase/firebaseConfig';
@@ -262,75 +263,43 @@ function RectificarPage() {
   }, [mainFormData, itemJustifications, gastosRendidos, boletasPendientes, paymentDetails, loadingState]);
 
   // --- Función optimizada para aplicar borrador de forma directa y confiable ---
-  const applyDraftDataDirectly = useCallback((draftData) => {
+  const applyDraftDataDirectly = useCallback(async (draftData) => {
     console.log('[RectificarPage] Aplicando borrador directamente:', draftData);
     console.log('[DEBUG] Estado del formulario ANTES de aplicar borrador');
-    
-    return new Promise((resolve) => {
-      try {
-        // Aplicar todos los estados de forma secuencial y sincronizada
-        
-        // 1. Aplicar datos principales de forma segura
-        if (draftData.mainFormData?.nuevoSaldoFinalRealEfectivo !== undefined) {
-          const newMainFormData = {
-            nuevoSaldoFinalRealEfectivo: String(draftData.mainFormData.nuevoSaldoFinalRealEfectivo),
-            superAdminMotivoDecision: String(draftData.mainFormData.superAdminMotivoDecision || '')
-          };
-          setMainFormData(prev => ({ ...prev, ...newMainFormData }));
-          console.log('[DEBUG] MainFormData aplicado:', newMainFormData);
-        }
-        
-        // 2. Aplicar justificaciones de forma segura
-        if (draftData.itemJustifications && typeof draftData.itemJustifications === 'object') {
-          const justifications = { ...draftData.itemJustifications };
-          setItemJustifications(justifications);
-          console.log('[DEBUG] ItemJustifications aplicado:', justifications);
-        }
-        
-        // 3. Aplicar gastos rendidos de forma segura
-        if (Array.isArray(draftData.gastosRendidos)) {
-          const gastos = [...draftData.gastosRendidos];
-          setGastosRendidos(gastos);
-          console.log('[DEBUG] GastosRendidos aplicado:', gastos.length, 'items');
-        }
-        
-        // 4. Aplicar boletas pendientes de forma segura
-        if (Array.isArray(draftData.boletasPendientes)) {
-          const boletas = [...draftData.boletasPendientes];
-          setBoletasPendientes(boletas);
-          console.log('[DEBUG] BoletasPendientes aplicado:', boletas.length, 'items');
-        }
-        // 5. Aplicar paymentDetails de borrador si existen
-        if (Array.isArray(draftData.paymentDetails)) {
-          const pd = draftData.paymentDetails.map(item => ({ ...item }));
-          setPaymentDetails(pd);
-          console.log('[DEBUG] PaymentDetails aplicado:', pd.length, 'items');
-        }
-        
-        // 5. Aplicar detalles de pago de forma segura y robusta
-        if (Array.isArray(draftData.paymentDetails)) {
-          const payments = draftData.paymentDetails.map(payment => ({
-            ...payment,
-            fisicoEditable: String(payment.fisicoEditable || ''),
-            sistema: Number(payment.sistema || 0)
-          }));
-          setPaymentDetails(payments);
-          console.log('[DEBUG] PaymentDetails aplicado:', payments.length, 'items');
-        }
-        
-        console.log('[RectificarPage] Borrador aplicado exitosamente - todos los estados actualizados');
-        // Timeout aumentado para garantizar que todos los setState se procesen completamente
-        setTimeout(() => {
-          console.log('[DEBUG] Estado del formulario DESPUÉS de aplicar borrador');
-          console.log('[RectificarPage] Confirmando aplicación exitosa del borrador');
-          resolve(true);        
-        }, 500); // Aumentado a 500ms para debugging
-        
-      } catch (error) {
-        console.error('[RectificarPage] Error aplicando borrador:', error);
-        resolve(false);
+    try {
+      // Preparar nuevos estados
+      const updates = {};
+      if (draftData.mainFormData?.nuevoSaldoFinalRealEfectivo !== undefined || draftData.mainFormData?.superAdminMotivoDecision !== undefined) {
+        updates.mainFormData = {
+          ...(draftData.mainFormData.nuevoSaldoFinalRealEfectivo !== undefined && { nuevoSaldoFinalRealEfectivo: String(draftData.mainFormData.nuevoSaldoFinalRealEfectivo) }),
+          ...(draftData.mainFormData.superAdminMotivoDecision !== undefined && { superAdminMotivoDecision: String(draftData.mainFormData.superAdminMotivoDecision) })
+        };
       }
-    });
+      if (draftData.itemJustifications && typeof draftData.itemJustifications === 'object') {
+        updates.itemJustifications = { ...draftData.itemJustifications };
+      }
+      if (Array.isArray(draftData.gastosRendidos)) {
+        updates.gastosRendidos = [...draftData.gastosRendidos];
+      }
+      if (Array.isArray(draftData.boletasPendientes)) {
+        updates.boletasPendientes = [...draftData.boletasPendientes];
+      }
+      if (Array.isArray(draftData.paymentDetails)) {
+        updates.paymentDetails = draftData.paymentDetails.map(p => ({ ...p, fisicoEditable: String(p.fisicoEditable || ''), sistema: Number(p.sistema || 0) }));
+      }
+      // Aplicar todos los estados en un solo flushSync para evitar re-renderes intermedios
+      flushSync(() => {
+        if (updates.mainFormData) setMainFormData(prev => ({ ...prev, ...updates.mainFormData }));
+        if (updates.itemJustifications) setItemJustifications(updates.itemJustifications);
+        if (updates.gastosRendidos) setGastosRendidos(updates.gastosRendidos);
+        if (updates.boletasPendientes) setBoletasPendientes(updates.boletasPendientes);
+        if (updates.paymentDetails) setPaymentDetails(updates.paymentDetails);
+      });
+      console.log('[RectificarPage] Borrador aplicado exitosamente - estados actualizados');
+      console.log('[DEBUG] Estado del formulario DESPUÉS de aplicar borrador');
+    } catch (error) {
+      console.error('[RectificarPage] Error aplicando borrador:', error);
+    }
   }, []);
 
   // Función simplificada para verificar si hay datos de borrador válidos
@@ -434,13 +403,15 @@ function RectificarPage() {
     finally { setIsLoading(false); }
   }, [userRole]);// --- useEffect para la carga inicial de datos cuando el componente se monta o sessionId/location.state cambian ---
   // Efecto unificado: carga inicial + borrador antes de renderizar UI
+  // Maestro effect: cargar datos iniciales y aplicar borrador con retry
   useEffect(() => {
+    if (!sessionId || !(userRole === 'admin' || userRole === 'superadmin')) return;
     let cancelled = false;
     (async () => {
-      // 1) Ocultar UI principal y marcar borrador en proceso
+      // 1) Ocultar UI y marcar arranque
       setLoadingState(s => ({ ...s, isReadyToShow: false, isDraftBeingApplied: true }));
       try {
-        // 2) Carga inicial de datos (Odoo y posible rectificación existente)
+        // 2) Carga inicial de datos (Odoo + rectificación existente)
         await loadInitialData(
           location.state?.sessionInitialData,
           location.state?.mode,
@@ -448,25 +419,32 @@ function RectificarPage() {
           sessionId
         );
         if (cancelled) return;
-        // 3) Carga y aplica borrador (admin o superadmin)
-        if (sessionId && (userRole === 'admin' || userRole === 'superadmin')) {
-          const snap = await get(ref(database, `rectificationDrafts/${sessionId}`));
+        // 3) Intentar cargar borrador hasta 3 veces si existe
+        const draftRef = ref(database, `rectificationDrafts/${sessionId}`);
+        for (let attempt = 1; attempt <= 3 && !cancelled; attempt++) {
+          const snap = await get(draftRef);
           if (cancelled) return;
           if (snap.exists()) {
             const draft = snap.val();
-            // Guardar info de última edición
+            console.log(`Borrador encontrado en intento ${attempt}`);
+            // guardar info de última edición
             setDraftState(d => ({ ...d, lastEditInfo: draft.lastEdited || null }));
-            // Aplicar datos del borrador
+            // aplicar borrador y esperar commit de estado
             await applyDraftDataDirectly(draft);
+            // pequeño retraso para asegurar render de nuevos estados
+            await new Promise(res => setTimeout(res, 300));
             showTempNotification('draft_loaded', 'Borrador cargado exitosamente');
+            break;
           }
+          console.warn(`Borrador no hallado, reintentando ${attempt}/3`);
+          await new Promise(res => setTimeout(res, 300));
         }
       } catch (e) {
-        console.error('Error inicializando página de rectificación:', e);
+        console.error('Error unificado inicializando rectificar:', e);
         setLoadingState(s => ({ ...s, hasError: true }));
       } finally {
         if (!cancelled) {
-          // 4) Mostrar UI con todos los datos aplicados
+          // 4) Mostrar UI definitiva
           setLoadingState(s => ({ ...s, isReadyToShow: true, isDraftBeingApplied: false }));
         }
       }
