@@ -547,39 +547,43 @@ function RectificarPage() {
     }
   };
 
-  const handleAmountInputChange = (setterFunction, fieldName, rawValue) => {
-      const parsedValue = parseInputAmount(rawValue);
-      setterFunction(prev => ({...prev, [fieldName]: parsedValue }));
-  };
-  
+  // Handler universal para cambios en el formulario principal (usa setFormState atómico)
   const handleMainFormChange = (e) => {
-      const {name, value} = e.target;
-      if(name === 'nuevoSaldoFinalRealEfectivo'){
-          handleAmountInputChange(setMainFormData, name, value);
-      } else {
-          setMainFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value } = e.target;
+    setFormState(prev => ({
+      ...prev,
+      mainFormData: {
+        ...prev.mainFormData,
+        [name]: value
       }
+    }));
   };
 
+  // Handler para cambios en los detalles de pago (usa setFormState atómico)
   const handlePaymentDetailChange = (itemName, field, rawValue) => {
     const parsedValue = parseInputAmount(rawValue);
-    setPaymentDetails(prevDetails => prevDetails.map(item => item.name === itemName ? { ...item, [field]: parsedValue } : item));
+    setFormState(prev => ({
+      ...prev,
+      paymentDetails: prev.paymentDetails.map(item =>
+        item.name === itemName ? { ...item, [field]: parsedValue } : item
+      )
+    }));
   };
-  
+
+  // Abrir modal de justificación de ítem
   const openItemJustificationModal = (item) => {
     setCurrentItemForJustification(item);
     setItemJustificationForm({ monto: '', motivo: '', tipo: 'faltante' });
     setIsItemJustificationModalOpen(true);
   };
+
+  // Handler para cambios en el formulario de justificación de ítem
   const handleItemJustificationFormChange = (e) => {
-    const {name, value} = e.target;
-    if(name === 'monto'){
-        const cleaned = value.replace(/[^0-9]/g, '');
-        setItemJustificationForm(prev => ({ ...prev, [name]: cleaned }));
-    } else {
-        setItemJustificationForm(prev => ({ ...prev, [name]: value }));
-    }
+    const { name, value } = e.target;
+    setItemJustificationForm(prev => ({ ...prev, [name]: value }));
   };
+
+  // (Eliminada duplicidad de handleSaveItemJustification)
   // --- Guardar justificación de ítem en el estado correspondiente ---
   const handleSaveItemJustification = (e) => {
     e.preventDefault();
