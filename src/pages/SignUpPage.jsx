@@ -1,4 +1,4 @@
-// Página de registro de usuario.
+// Página de registro de usuario. Esta Página no está en uso!!!!!!!!!!!!!
 // Permite a un nuevo usuario crear una cuenta con email y contraseña.
 // Valida que las contraseñas coincidan y maneja errores comunes de registro.
 // Al registrarse exitosamente, guarda el usuario en Firebase y lo redirige al login.

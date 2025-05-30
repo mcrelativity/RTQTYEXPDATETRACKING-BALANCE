@@ -1,4 +1,4 @@
-// Página de perfil de usuario.
+// Página de perfil de usuario. Esta página no esta en uso por ahora!!!1
 // Muestra la información básica del usuario autenticado y permite volver a la página principal.
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
