@@ -68,17 +68,17 @@ async function callOdooApi(apiUrl, requestData) {
 }
 
 // --- Función para obtener las sesiones de punto de venta (POS) desde Odoo ---
-async function fetchPosSessions(apiUrl, startDate, endDate) {
+// Modificado: sin filtros de fecha, trae todas las sesiones que la API permita
+async function fetchPosSessions(apiUrl) {
   const requestData = {
     model: "pos.session",
-    filters: [[["start_at", ">=", startDate], ["start_at", "<=", endDate]]],
     fields: [
       "id", "name", "user_id", "start_at", "stop_at", "crm_team_id",
       "cash_register_balance_start", "cash_register_balance_end_real",
       "cash_register_difference", "cash_register_balance_end", "cash_real_transaction"
     ],
     method: "search_read",
-    limit: 1000,
+    limit: 10000, // Puedes ajustar este límite si la API lo permite
     order: "start_at DESC"
   };
   return await callOdooApi(apiUrl, requestData);
@@ -147,24 +147,8 @@ function CuadraturasPage() {
     if(showLoadingIndicator) setIsLoading(true);
     setApiError(null);
 
-    const today = new Date();
-    const formatDateForAPI = (date, time) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day} ${time}`;
-    };
-
-    const endDateObj = new Date(today);
-    endDateObj.setDate(endDateObj.getDate() + 1);
-    const startDateObj = new Date(today);
-    startDateObj.setDate(startDateObj.getDate() - 30);
-
-    const startDate = formatDateForAPI(startDateObj, "00:00:00");
-    const endDate = formatDateForAPI(endDateObj, "03:59:59");
-
     try {
-      const sessionsFromApi = await fetchPosSessions(API_ENDPOINT, startDate, endDate);
+      const sessionsFromApi = await fetchPosSessions(API_ENDPOINT);
       if (!Array.isArray(sessionsFromApi)) throw new Error("La respuesta de sesiones no es un array válido.");
 
       const rectificationRequestsRef = ref(database, 'rectificationRequests');
@@ -379,11 +363,11 @@ function CuadraturasPage() {
     if (userRole === 'admin') {
       // Admin puede interactuar si la sesión está 'sin_rectificar' (para crear o continuar su borrador).
       if (session.rectificationStatus === 'sin_rectificar') {
-        return true; 
+        return true;
       }
-      // Admin puede interactuar con una solicitud 'pendiente' si él la envió.
-      if (session.rectificationStatus === 'pendiente' && session.rectificationRequestDetails?.submittedByUid === currentUser.uid) {
-        return true; 
+      // Admin puede visualizar cualquier solicitud existente (pendiente, aprobada o rechazada)
+      if (['pendiente', 'aprobada', 'rechazada'].includes(session.rectificationStatus)) {
+        return true;
       }
     }
     return false;

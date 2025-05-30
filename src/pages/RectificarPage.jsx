@@ -211,12 +211,32 @@ function sanitizeForFirebase(dataObject) {
 // Gestiona la lógica de visualización, edición, justificación y envío de solicitudes de rectificación de caja.
 // Incluye manejo de estados, hooks de ciclo de vida, lógica de negocio y renderizado condicional.
 
+
 function RectificarPage() {
   // --- Hooks de React Router y Auth ---
   const navigate = useNavigate();
   const location = useLocation();
   const { sessionId } = useParams();
   const { currentUser, userRole } = useAuth();
+
+  // --- Robustez: Si no viene existingRequestId en location.state, intentar buscarlo automáticamente ---
+  // Solo admins: buscar la solicitud de rectificación asociada a la sesión si no viene en el estado
+  const [autoRequestId, setAutoRequestId] = useState(null);
+  useEffect(() => {
+    async function fetchRequestIdIfNeeded() {
+      if (!location.state?.existingRequestId && sessionId && userRole === 'admin') {
+        // Buscar en Firebase si hay una solicitud para esta sesión
+        const reqsRef = ref(database, 'rectificationRequests');
+        const snap = await get(reqsRef);
+        if (snap.exists()) {
+          const all = snap.val();
+          const found = Object.entries(all).find(([k, v]) => String(v.sessionId) === String(sessionId));
+          if (found) setAutoRequestId(found[0]);
+        }
+      }
+    }
+    fetchRequestIdIfNeeded();
+  }, [location.state, sessionId, userRole]);
 
   // --- Estado maestro atómico ---
   const [formState, setFormState] = useState({
@@ -353,7 +373,8 @@ function RectificarPage() {
       let loadedExistingRectification = null;
       const initialItemJustifications = {};
 
-      if ((modeToUse === 'review' || modeToUse === 'view_only') && reqIdToUse) {
+      // Si hay requestId, siempre buscar la solicitud y mostrar detalles si existe
+      if (reqIdToUse) {
         const requestRef = ref(database, `rectificationRequests/${reqIdToUse}`);
         const snapshot = await get(requestRef);
         if (snapshot.exists()) {
@@ -371,6 +392,10 @@ function RectificarPage() {
           baseData.itemJustifications = initialItemJustifications;
           baseData.gastosRendidos = loadedExistingRectification.rectificationDetails?.gastosRendidos || [];
           baseData.boletasPendientes = loadedExistingRectification.rectificationDetails?.boletasPendientesRegistradas || [];
+          // Siempre mostrar detalles en modo solo visualización para admins si existe solicitud
+          if (userRole === 'admin') {
+            baseData.pageMode = 'view_only';
+          }
         } else {
           if (userRole === 'admin' && sessionToUse.rectificationStatus === 'sin_rectificar') {
             modeToUse = 'create';
@@ -424,6 +449,9 @@ function RectificarPage() {
   // EFECTO MAESTRO: Carga datos base y aplica borrador de forma secuencial y atómica
   useEffect(() => {
     let cancelled = false;
+    // Si la sesión está sin rectificar, no esperar existingRequestId ni autoRequestId
+    const isSinRectificar = location.state?.mode === 'create' || (formState.sessionData && formState.sessionData.rectificationStatus === 'sin_rectificar');
+    if (userRole === 'admin' && !isSinRectificar && !location.state?.existingRequestId && !autoRequestId) return;
     async function cargarTodo() {
       setLoadingState(s => ({ ...s, isReadyToShow: false, isDraftBeingApplied: true, isInitialLoading: true }));
       try {
@@ -432,7 +460,7 @@ function RectificarPage() {
           let baseData = await loadInitialData(
             location.state?.sessionInitialData,
             location.state?.mode,
-            location.state?.existingRequestId,
+            location.state?.existingRequestId || autoRequestId,
             sessionId
           );
           if (cancelled) return;
@@ -474,7 +502,7 @@ function RectificarPage() {
     }
     cargarTodo();
     return () => { cancelled = true; };
-  }, [sessionId, userRole, loadInitialData, location.state]);
+  }, [sessionId, userRole, loadInitialData, location.state, autoRequestId]);
 
   // Efecto: solo mostrar la UI cuando los datos críticos estén realmente en los estados
   useEffect(() => {
@@ -527,10 +555,12 @@ function RectificarPage() {
   };
 
   // --- Elimina el borrador colaborativo después de enviar la solicitud ---
-  const clearDraftAfterSubmit = async () => {
-    if (sessionData?.id) {
+  // Elimina el borrador colaborativo después de enviar la solicitud
+  // Recibe sessionDataLocal como argumento para evitar referencias globales
+  const clearDraftAfterSubmit = async (sessionDataLocal) => {
+    if (sessionDataLocal?.id) {
       try {
-        const draftRef = ref(database, `rectificationDrafts/${sessionData.id}`);
+        const draftRef = ref(database, `rectificationDrafts/${sessionDataLocal.id}`);
         await set(draftRef, null);
       } catch (err) {
         console.error("Error limpiando borrador:", err);
@@ -674,7 +704,9 @@ function RectificarPage() {
 
   // --- Enviar solicitud de rectificación a Firebase ---
   const doSubmitRectification = async () => {
-    if (!sessionData || userRole !== 'admin') {
+    // Usar SIEMPRE una sola variable local para sessionData
+    const sessionDataLocal = formState.sessionData;
+    if (!sessionDataLocal || userRole !== 'admin') {
       setError("Solo los administradores pueden enviar solicitudes de rectificación.");
       setIsSubmitting(false);
       setShowConfirmModal(false);
@@ -682,7 +714,7 @@ function RectificarPage() {
     }
     setError(''); setSuccess(''); setIsSubmitting(true);
 
-    const saldoEfectivoFisicoOdooParsed = parseFloat(sessionData.cash_register_balance_end_real);
+    const saldoEfectivoFisicoOdooParsed = parseFloat(sessionDataLocal.cash_register_balance_end_real);
     const saldoEfectivoFormulario = formState.mainFormData.nuevoSaldoFinalRealEfectivo.trim();
     let saldoEfectivoFinalParaGuardar;
 
@@ -725,16 +757,23 @@ function RectificarPage() {
 
     if (formErrorMsg) { setError(formErrorMsg.trim()); setIsSubmitting(false); setShowConfirmModal(false); return; }
 
+    // Defensive: asegurar que sessionData está definido en todo el scope
+    if (!sessionDataLocal) {
+      setError('No hay datos de sesión disponibles.');
+      setIsSubmitting(false);
+      setShowConfirmModal(false);
+      return;
+    }
     const rawRectificationRequest = {
-      sessionId: sessionData.id, sessionName: sessionData.name,
-      originalUserIdArray: sessionData.user_id, originalStartAt: sessionData.start_at, originalStopAt: sessionData.stop_at,
-      originalStoreName: Array.isArray(sessionData.crm_team_id) ? sessionData.crm_team_id[1] : 'Desconocido',
-      originalStoreId: Array.isArray(sessionData.crm_team_id) ? sessionData.crm_team_id[0] : undefined,
-      originalCashRegisterBalanceStart: sessionData.cash_register_balance_start,
-      originalCashRegisterBalanceEndReal: sessionData.cash_register_balance_end_real,
-      originalTheoreticalCashFromApi: sessionData.cash_register_balance_end,
-      originalCashRegisterDifference: sessionData.cash_register_difference,
-      originalCashRealTransaction: sessionData.cash_real_transaction,
+      sessionId: sessionDataLocal.id, sessionName: sessionDataLocal.name,
+      originalUserIdArray: sessionDataLocal.user_id, originalStartAt: sessionDataLocal.start_at, originalStopAt: sessionDataLocal.stop_at,
+      originalStoreName: Array.isArray(sessionDataLocal.crm_team_id) ? sessionDataLocal.crm_team_id[1] : 'Desconocido',
+      originalStoreId: Array.isArray(sessionDataLocal.crm_team_id) ? sessionDataLocal.crm_team_id[0] : undefined,
+      originalCashRegisterBalanceStart: sessionDataLocal.cash_register_balance_start,
+      originalCashRegisterBalanceEndReal: sessionDataLocal.cash_register_balance_end_real,
+      originalTheoreticalCashFromApi: sessionDataLocal.cash_register_balance_end,
+      originalCashRegisterDifference: sessionDataLocal.cash_register_difference,
+      originalCashRealTransaction: sessionDataLocal.cash_real_transaction,
       rectificationDetails: {
         ajusteSaldoEfectivo: { montoAjustado: saldoEfectivoFinalParaGuardar },
         justificacionesPorMetodo: justificacionesPorMetodoFinal,
@@ -742,14 +781,14 @@ function RectificarPage() {
         boletasPendientesRegistradas: formState.boletasPendientes,
       },
       submittedByEmail: currentUser?.email, submittedByUid: currentUser?.uid, submittedAt: serverTimestamp(),
-      status: "pendiente", storeIdSubmitter: Array.isArray(sessionData.crm_team_id) ? sessionData.crm_team_id[0] : null,
+      status: "pendiente", storeIdSubmitter: Array.isArray(sessionDataLocal.crm_team_id) ? sessionDataLocal.crm_team_id[0] : null,
       approvedBy: null, approvedAt: null, rejectionReason: null
     };
     const rectificationRequestToSave = sanitizeForFirebase(rawRectificationRequest);
 
     try {
       await push(ref(database, 'rectificationRequests'), rectificationRequestToSave);
-      await clearDraftAfterSubmit();
+      await clearDraftAfterSubmit(sessionDataLocal);
       setSuccess('Solicitud de rectificación enviada.');
       setShowConfirmAnim(true);
       setConfirmAnimSuccess(true);
@@ -825,6 +864,9 @@ function RectificarPage() {
 
   // Determina si el formulario es editable por un admin (en modo creación).
   const isFormEditableByAdmin = formState.pageMode === 'create' && userRole === 'admin';
+
+  // Permitir que los admins también puedan ver rectificaciones ya enviadas (pendientes, aprobadas, rechazadas)
+  const isAdminViewingRectification = userRole === 'admin' && formState.existingRectification;
   // Determina si un superadmin puede tomar una decisión sobre una solicitud pendiente.
   const canSuperAdminDecide = formState.pageMode === 'review' && formState.existingRectification?.status === 'pendiente' && userRole === 'superadmin';
 
@@ -901,9 +943,11 @@ function RectificarPage() {
   if (error && !formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
   if (!formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
  
+
   // Variable final para determinar si el formulario debe ser editable.
-  // Solo los admin pueden editar en modo 'create'. Los superadmin solo visualizan.
+  // Solo los admin pueden editar en modo 'create'. Los superadmin y los admin pueden visualizar rectificaciones ya enviadas.
   const finalIsFormEditable = userRole === 'admin' && formState.pageMode === 'create';
+  const finalIsViewOnly = (userRole === 'superadmin' && formState.existingRectification) || (userRole === 'admin' && formState.existingRectification);
 
   // Condición para mostrar el botón de justificar efectivo.
   const puedeJustificarEfectivoCalculated = finalIsFormEditable && (diferenciaBrutaConBoletas !== 0 || diferenciaEfectivoNeta !== 0);
@@ -1015,7 +1059,8 @@ function RectificarPage() {
                         disabled={isSubmitting || isSavingDraft}
                         required
                       />
-                  ) : formatCurrency(efectivoFisicoParaDisplay)}</td>
+                  ) : formatCurrency(efectivoFisicoParaDisplay)}
+                  </td>
                   <td data-label="Diferencia" className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
                   <td data-label="Justificaciones" className="justificaciones-cell">
                     {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (finalIsFormEditable && puedeJustificarEfectivoCalculated ? <span className="text-muted-italic">Click en lápiz para justificar</span> : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
@@ -1036,6 +1081,8 @@ function RectificarPage() {
                             <span className="material-symbols-outlined">visibility</span>
                         </button>
                     )}
+                    {/* Permitir a admins ver acciones de rectificaciones enviadas */}
+
                     {canSuperAdminDecide && (() => {
                         const hasNetDifferenceForIcon = diferenciaEfectivoNeta !== 0;
                         const hasJustifications = justificacionesEfectivo.length > 0;
@@ -1338,10 +1385,10 @@ function RectificarPage() {
           <div className="review-actions-form">
             <h3>Decisión Superadministrador</h3>
 
-            <div className="form-group"><label htmlFor="superAdminMotivoDecision">Comentarios Adicionales (requerido para rechazar, 100 caracteres max.):</label><textarea id="superAdminMotivoDecision" maxLength={100} name="superAdminMotivoDecision" value={mainFormData.superAdminMotivoDecision} onChange={handleMainFormChange} rows="3" disabled={isSubmitting || !!success}/></div>
+            <div className="form-group"><label htmlFor="superAdminMotivoDecision">Comentarios Adicionales (requerido para rechazar, 100 caracteres max.):</label><textarea id="superAdminMotivoDecision" maxLength={100} name="superAdminMotivoDecision" value={formState.mainFormData.superAdminMotivoDecision} onChange={handleMainFormChange} rows="3" disabled={isSubmitting || !!success}/></div>
             <div className="action-buttons">
               <button onClick={() => handleApprovalAction('aprobada')} className="approve-button" disabled={isSubmitting || !!success}>Aprobar Solicitud</button>
-              <button onClick={() => handleApprovalAction('rechazada')} className="reject-button" disabled={isSubmitting || !!success || !mainFormData.superAdminMotivoDecision.trim()}>Rechazar Solicitud</button>
+              <button onClick={() => handleApprovalAction('rechazada')} className="reject-button" disabled={isSubmitting || !!success || !(formState.mainFormData && formState.mainFormData.superAdminMotivoDecision && formState.mainFormData.superAdminMotivoDecision.trim())}>Rechazar Solicitud</button>
             </div>
           </div>
         )}
