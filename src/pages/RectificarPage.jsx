@@ -6,6 +6,29 @@
 // Documentación detallada en español para cada función y bloque relevante.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+// Modal de error elegante para mostrar mensajes de validación o errores
+function ErrorModal({ open, message, onClose }) {
+  if (!open) return null;
+  return (
+    <div className="error-modal-overlay" style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(0,0,0,0.32)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <div className="error-modal-content" style={{
+        background: 'white', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+        padding: '32px 28px 20px 28px', minWidth: 320, maxWidth: '90vw', textAlign: 'center', position: 'relative'
+      }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 48, color: '#d32f2f', marginBottom: 8 }}>error</span>
+        <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 10, color: '#d32f2f' }}>Error de validación</div>
+        <div style={{ fontSize: 15, color: '#333', marginBottom: 24, whiteSpace: 'pre-line' }}>{message}</div>
+        <button onClick={onClose} style={{
+          background: '#d32f2f', color: 'white', border: 'none', borderRadius: 6, padding: '8px 24px', fontWeight: 500, fontSize: 15, cursor: 'pointer',
+        }}>Cerrar</button>
+      </div>
+    </div>
+  );
+}
+
 import { flushSync } from 'react-dom';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -171,23 +194,20 @@ const formatCurrency = (amount) => {
 
 // --- Función para parsear y limpiar un valor de input de monto, permitiendo un signo negativo al inicio ---
 // Elimina puntos y cualquier caracter no numérico (excepto el signo inicial).
+// Solo permite números enteros positivos, sin signo negativo
 const parseInputAmount = (value) => {
   if (value === null || value === undefined) return '';
   let stringValue = String(value).trim();
-  let sign = '';
-  if (stringValue.startsWith('-')) {
-    sign = '-';
-    stringValue = stringValue.substring(1);
-  }
-  const cleanedValue = stringValue.replace(/\./g, '').replace(/[^0-9]/g, ''); 
+  // Elimina cualquier signo negativo y caracteres no numéricos
+  const cleanedValue = stringValue.replace(/[^0-9]/g, '');
   if (cleanedValue === '') {
-    return sign && sign === '-' ? '-' : ''; 
+    return '';
   }
   const number = parseInt(cleanedValue, 10);
   if (isNaN(number)) {
-    return sign && sign === '-' ? '-' : ''; 
+    return '';
   }
-  return sign + number.toString(); 
+  return number.toString();
 };
 
 // --- Función recursiva para sanitizar un objeto antes de guardarlo en Firebase ---
@@ -213,6 +233,8 @@ function sanitizeForFirebase(dataObject) {
 
 
 function RectificarPage() {
+  // Estado para el modal de error elegante
+  const [errorModal, setErrorModal] = useState({ open: false, message: '' });
   // --- Hooks de React Router y Auth ---
   const navigate = useNavigate();
   const location = useLocation();
@@ -520,7 +542,7 @@ function RectificarPage() {
   }, [formState, loadingState.isInitialLoading, loadingState.isDraftBeingApplied]);
   const handleSaveDraft = async () => {
     if (!formState.sessionData || userRole !== 'admin' || formState.pageMode !== 'create') {
-      setError("Solo los administradores pueden guardar borradores en modo creación.");
+      setErrorModal({ open: true, message: "Solo los administradores pueden guardar borradores en modo creación." });
       return;
     }
     setIsSavingDraft(true);
@@ -602,8 +624,9 @@ function RectificarPage() {
   const handleItemJustificationFormChange = (e) => {
     const { name, value } = e.target;
     if (name === 'monto') {
-      // Solo permitir números enteros positivos
-      const cleaned = value.replace(/[^0-9]/g, '');
+      // Solo permitir hasta 10 dígitos positivos (sin signo)
+      let cleaned = value.replace(/[^0-9]/g, '');
+      if (cleaned.length > 10) cleaned = cleaned.slice(0, 10);
       setItemJustificationForm(prev => ({ ...prev, [name]: cleaned }));
     } else {
       setItemJustificationForm(prev => ({ ...prev, [name]: value }));
@@ -616,10 +639,10 @@ function RectificarPage() {
     const monto = parseInt(itemJustificationForm.monto, 10);
     const tipo = itemJustificationForm.tipo || 'faltante';
     if (isNaN(monto) || monto <= 0 || itemJustificationForm.motivo.trim() === '') {
-      alert('Monto (entero positivo) y motivo son requeridos para la justificación.'); return;
+      setErrorModal({ open: true, message: 'Monto (entero positivo) y motivo son requeridos para la justificación.' }); return;
     }
     if (itemJustificationForm.motivo.trim().length > 100) {
-      alert('El motivo no puede exceder los 100 caracteres.'); return;
+      setErrorModal({ open: true, message: 'El motivo no puede exceder los 100 caracteres.' }); return;
     }
     const keyToUpdate = currentItemForJustification.id === 'efectivo'
       ? DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash).display_name
@@ -644,20 +667,23 @@ function RectificarPage() {
   // --- Manejo de cambios en el formulario de gasto ---
   const handleGastoFormChange = (e) => {
       const {name, value} = e.target;
-      if(name === 'monto'){
-          const cleaned = value.replace(/[^0-9]/g, '');
-          setGastoForm(prev => ({ ...prev, [name]: cleaned }));
-      } else {
-          setGastoForm(prev => ({ ...prev, [name]: value }));
-      }
+    if(name === 'monto'){
+        let cleaned = value.replace(/[^0-9]/g, '');
+        if (cleaned.length > 10) cleaned = cleaned.slice(0, 10);
+        setGastoForm(prev => ({ ...prev, [name]: cleaned }));
+    } else if (name === 'comprobante') {
+        setGastoForm(prev => ({ ...prev, [name]: value.slice(0, 100) }));
+    } else {
+        setGastoForm(prev => ({ ...prev, [name]: value }));
+    }
   };
   // --- Guardar gasto rendido en el estado correspondiente ---
   const handleSaveGasto = (e) => {
     e.preventDefault();
     const monto = parseFloat(gastoForm.monto);
-    if (isNaN(monto) || monto <= 0 || gastoForm.motivo.trim() === '') { alert('Monto válido y motivo son requeridos.'); return; }
-    if (!gastoForm.comprobante || gastoForm.comprobante.trim() === '') { alert('El número de comprobante es requerido.'); return; }
-    if (gastoForm.motivo.trim().length > 50) { alert('El motivo del gasto no puede exceder los 50 caracteres.'); return; }
+    if (isNaN(monto) || monto <= 0 || gastoForm.motivo.trim() === '') { setErrorModal({ open: true, message: 'Monto válido y motivo son requeridos.' }); return; }
+    if (!gastoForm.comprobante || gastoForm.comprobante.trim() === '') { setErrorModal({ open: true, message: 'El número de comprobante es requerido.' }); return; }
+    if (gastoForm.motivo.trim().length > 50) { setErrorModal({ open: true, message: 'El motivo del gasto no puede exceder los 50 caracteres.' }); return; }
 
     setFormState(prev => ({
       ...prev,
@@ -675,8 +701,11 @@ function RectificarPage() {
   const handleBoletaFormChange = (e) => {
     const {name, value} = e.target;
     if(name === 'monto'){
-        const cleaned = value.replace(/[^0-9]/g, '');
+        let cleaned = value.replace(/[^0-9]/g, '');
+        if (cleaned.length > 10) cleaned = cleaned.slice(0, 10);
         setBoletaForm(prev => ({ ...prev, [name]: cleaned }));
+    } else if (name === 'numeroBoleta') {
+        setBoletaForm(prev => ({ ...prev, [name]: value.slice(0, 100) }));
     } else {
         setBoletaForm(prev => ({ ...prev, [name]: value }));
     }
@@ -685,7 +714,9 @@ function RectificarPage() {
   const handleSaveBoleta = (e) => {
     e.preventDefault();
     const monto = parseFloat(boletaForm.monto);
-    if (isNaN(monto) || monto <= 0 || boletaForm.numeroBoleta.trim() === '') { alert('Monto válido y número de boleta son requeridos.'); return; }
+    if (isNaN(monto) || monto <= 0 || boletaForm.numeroBoleta.trim() === '') { setErrorModal({ open: true, message: 'Monto válido y número de boleta son requeridos.' }); return; }
+      {/* Modal de error elegante para validaciones */}
+      <ErrorModal open={errorModal.open} message={errorModal.message} onClose={() => setErrorModal({ open: false, message: '' })} />
     setFormState(prev => ({
       ...prev,
       boletasPendientes: [
@@ -707,7 +738,7 @@ function RectificarPage() {
     // Usar SIEMPRE una sola variable local para sessionData
     const sessionDataLocal = formState.sessionData;
     if (!sessionDataLocal || userRole !== 'admin') {
-      setError("Solo los administradores pueden enviar solicitudes de rectificación.");
+      setErrorModal({ open: true, message: "Solo los administradores pueden enviar solicitudes de rectificación." });
       setIsSubmitting(false);
       setShowConfirmModal(false);
       return;
@@ -719,15 +750,17 @@ function RectificarPage() {
     let saldoEfectivoFinalParaGuardar;
 
     if (saldoEfectivoFormulario === '') {
-      setError('El campo de monto físico efectivo es obligatorio.'); setIsSubmitting(false); setShowConfirmModal(false); return;
+      setErrorModal({ open: true, message: 'El campo de monto físico efectivo es obligatorio.' }); setIsSubmitting(false); setShowConfirmModal(false); return;
     } else {
       saldoEfectivoFinalParaGuardar = parseFloat(formState.mainFormData.nuevoSaldoFinalRealEfectivo);
       if (isNaN(saldoEfectivoFinalParaGuardar)) {
-        setError('El saldo de efectivo físico ingresado debe ser un número válido.'); setIsSubmitting(false); setShowConfirmModal(false); return;
+        setErrorModal({ open: true, message: 'El saldo de efectivo físico ingresado debe ser un número válido.' }); setIsSubmitting(false); setShowConfirmModal(false); return;
       }
     }
 
-    let formErrorMsg = "";
+
+    let missingFields = [];
+    let invalidFields = [];
     const justificacionesPorMetodoFinal = {};
 
     const efectivoConfig = DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash);
@@ -742,11 +775,11 @@ function RectificarPage() {
       const fisicoEditableForm = pd.fisicoEditable.trim();
       let fisicoFinalParaGuardar;
       if (fisicoEditableForm === '') {
-        formErrorMsg += ` El campo de monto físico para ${pd.name} es obligatorio.`;
+        missingFields.push(pd.name);
       } else {
         fisicoFinalParaGuardar = parseFloat(pd.fisicoEditable);
         if (isNaN(fisicoFinalParaGuardar)) {
-          formErrorMsg += ` El monto físico para ${pd.name} no es un número válido.`;
+          invalidFields.push(pd.name);
         }
       }
       justificacionesPorMetodoFinal[pd.name] = {
@@ -755,11 +788,20 @@ function RectificarPage() {
       };
     });
 
-    if (formErrorMsg) { setError(formErrorMsg.trim()); setIsSubmitting(false); setShowConfirmModal(false); return; }
+    if (missingFields.length > 1) {
+      setErrorModal({ open: true, message: 'Todos los campos de monto físico son obligatorios.' });
+      setIsSubmitting(false); setShowConfirmModal(false); return;
+    } else if (missingFields.length === 1) {
+      setErrorModal({ open: true, message: `El campo de monto físico para ${missingFields[0]} es obligatorio.` });
+      setIsSubmitting(false); setShowConfirmModal(false); return;
+    } else if (invalidFields.length > 0) {
+      setErrorModal({ open: true, message: `El monto físico para ${invalidFields.join(', ')} no es un número válido.` });
+      setIsSubmitting(false); setShowConfirmModal(false); return;
+    }
 
     // Defensive: asegurar que sessionData está definido en todo el scope
     if (!sessionDataLocal) {
-      setError('No hay datos de sesión disponibles.');
+      setErrorModal({ open: true, message: 'No hay datos de sesión disponibles.' });
       setIsSubmitting(false);
       setShowConfirmModal(false);
       return;
@@ -816,11 +858,11 @@ function RectificarPage() {
     if (!formState.existingRectification?.requestId || userRole !== 'superadmin') return;
     const decisionComment = formState.mainFormData.superAdminMotivoDecision.trim();
     if (action === 'rechazada' && !decisionComment) {
-        setError('Motivo de rechazo es requerido.');
+        setErrorModal({ open: true, message: 'Motivo de rechazo es requerido.' });
         return;
     }
      if (action === 'rechazada' && decisionComment.length > 100) {
-        setError('El motivo de rechazo no puede exceder los 100 caracteres.');
+        setErrorModal({ open: true, message: 'El motivo de rechazo no puede exceder los 100 caracteres.' });
         return;
     }
     setIsSubmitting(true); setError(''); setSuccess('');
@@ -1020,7 +1062,11 @@ function RectificarPage() {
             </div>
         </div>
       </header>
-      {error && <p className="error-message page-level-error">{error}</p>}      {success && <p className="success-message page-level-success">{success}</p>}
+      {error && <p className="error-message page-level-error">{error}</p>}
+      {success && <p className="success-message page-level-success">{success}</p>}
+
+      {/* Modal de error elegante para validaciones */}
+      <ErrorModal open={errorModal.open} message={errorModal.message} onClose={() => setErrorModal({ open: false, message: '' })} />
 
       <div className="rectificar-main-content">
         
@@ -1046,13 +1092,14 @@ function RectificarPage() {
                   <td data-label="Sistema">{formatCurrency(efectivoOdoo)}</td>
                   <td data-label="Físico">{finalIsFormEditable ? (
                       <input
-                        type="number"
+                        type="text"
                         min="1"
                         step="1"
-                        pattern="[0-9]*"
+                        pattern="[0-9-]*"
                         inputMode="numeric"
                         autoComplete="off"
                         name="nuevoSaldoFinalRealEfectivo"
+                        maxLength={11}
                         value={typeof formState.mainFormData.nuevoSaldoFinalRealEfectivo === 'string' ? formState.mainFormData.nuevoSaldoFinalRealEfectivo : (formState.mainFormData.nuevoSaldoFinalRealEfectivo || '')}
                         onChange={handleMainFormChange}
                         placeholder="Monto físico actual"
@@ -1063,7 +1110,24 @@ function RectificarPage() {
                   </td>
                   <td data-label="Diferencia" className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
                   <td data-label="Justificaciones" className="justificaciones-cell">
-                    {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (finalIsFormEditable && puedeJustificarEfectivoCalculated ? <span className="text-muted-italic">Click en lápiz para justificar</span> : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
+                    {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => (
+                      <div key={idx} title={j.motivo} className="justification-entry" style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px', alignItems: 'center', minWidth: 0 }}>
+                        <span style={{ color: j.tipo === 'faltante' ? 'red' : 'green', fontWeight: 'bold', textAlign: 'right', width: 28, display: 'inline-block' }}>
+                          {j.tipo === 'faltante' ? 'F' : 'S'}:
+                        </span>
+                        <span style={{
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          maxWidth: 120,
+                          display: 'inline-block',
+                          verticalAlign: 'middle',
+                        }}>{j.motivo}</span>
+                        <span style={{ textAlign: 'right', width: 80, display: 'inline-block', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(Math.abs(j.monto))}</span>
+                      </div>
+                    )) : (finalIsFormEditable && puedeJustificarEfectivoCalculated ? (
+                      <span className="text-muted-italic justify-hint-mobile">Click en lápiz para justificar</span>
+                    ) : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
                   </td>
                   <td data-label="Acciones">
                     {finalIsFormEditable && puedeJustificarEfectivoCalculated && 
@@ -1144,12 +1208,13 @@ function RectificarPage() {
                     <td data-label="Método">{item.name}</td><td data-label="Sistema">{formatCurrency(item.sistema)}</td>
                     <td data-label="Físico">{finalIsFormEditable ? (
                       <input
-                        type="number"
+                        type="text"
                         min="1"
                         step="1"
-                        pattern="[0-9]*"
+                        pattern="[0-9-]*"
                         inputMode="numeric"
                         autoComplete="off"
+                        maxLength={11}
                         value={typeof item.fisicoEditable === 'string' ? item.fisicoEditable : (item.fisicoEditable || '')}
                         onChange={(e) => handlePaymentDetailChange(item.name, 'fisicoEditable', e.target.value)}
                         placeholder="Monto físico"
@@ -1159,7 +1224,24 @@ function RectificarPage() {
                     ) : formatCurrency(fisicoItemParaDisplayValue)}</td>
                     <td data-label="Diferencia" className={diferenciaItemNetaConJustificaciones !== 0 ? (diferenciaItemNetaConJustificaciones < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaItemNetaConJustificaciones)}</td>
                     <td data-label="Justificaciones" className="justificaciones-cell">
-                      {justsArray.length > 0 ? justsArray.map((j, idx) => <div key={idx} title={j.motivo} className="justification-entry"><span>{j.motivo}:</span> <span>{formatCurrency(j.monto)}</span></div>) : (finalIsFormEditable && puedeJustificarItemCurrent ? <span className="text-muted-italic">Click en lápiz para justificar</span> : (diferenciaItemBruta === 0 ? 'OK' : 'N/A'))}
+                      {justsArray.length > 0 ? justsArray.map((j, idx) => (
+                        <div key={idx} title={j.motivo} className="justification-entry" style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px', alignItems: 'center', minWidth: 0 }}>
+                          <span style={{ color: j.tipo === 'faltante' ? 'red' : 'green', fontWeight: 'bold', textAlign: 'right', width: 28, display: 'inline-block' }}>
+                            {j.tipo === 'faltante' ? 'F' : 'S'}:
+                          </span>
+                          <span style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: 120,
+                            display: 'inline-block',
+                            verticalAlign: 'middle',
+                          }}>{j.motivo}</span>
+                          <span style={{ textAlign: 'right', width: 80, display: 'inline-block', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(Math.abs(j.monto))}</span>
+                        </div>
+                      )) : (finalIsFormEditable && puedeJustificarItemCurrent ? (
+                        <span className="text-muted-italic justify-hint-mobile">Click en lápiz para justificar</span>
+                      ) : (diferenciaItemBruta === 0 ? 'OK' : 'N/A'))}
                     </td>
                     <td data-label="Acciones">
                       {finalIsFormEditable && puedeJustificarItemCurrent && 
@@ -1414,7 +1496,7 @@ function RectificarPage() {
                   <option value="sobrante">Sobrante</option>
                 </select>
               </div>
-              <div className="form-group"><label htmlFor="itemJustMonto">Monto de la Justificación:</label><input type="text" id="itemJustMonto" name="monto" value={itemJustificationForm.monto} onChange={handleItemJustificationFormChange} placeholder="Ej: 5000" required /></div>
+              <div className="form-group"><label htmlFor="itemJustMonto">Monto de la Justificación:</label><input type="text" id="itemJustMonto" name="monto" value={itemJustificationForm.monto} onChange={handleItemJustificationFormChange} placeholder="Ej: 5000" maxLength={11} required /></div>
               <div className="form-group"><label htmlFor="itemJustMotivo">Motivo de Justificación (Obligatorio, 100 caracteres max.):</label><textarea id="itemJustMotivo" maxLength={100} name="motivo" value={itemJustificationForm.motivo} onChange={handleItemJustificationFormChange} rows="3" required /></div>
               <button type="submit" className="modal-submit-button" disabled={isSubmitting || isSavingDraft}>Guardar Justificación</button>
             </form>
@@ -1427,8 +1509,8 @@ function RectificarPage() {
                        <button type="button" className="modal-close-button" onClick={() => setIsGastoModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
             <h3>Rendir Gasto</h3>
             <form onSubmit={handleSaveGasto} className="modal-form">
-                <div className="form-group"><label htmlFor="gastoMonto">Monto:</label><input type="text" id="gastoMonto" name="monto" value={gastoForm.monto} onChange={handleGastoFormChange} required /></div>
-                <div className="form-group"><label htmlFor="gastoComprobante">Nº Comprobante/Referencia:</label><input type="text" id="gastoComprobante" name="comprobante" value={gastoForm.comprobante} onChange={handleGastoFormChange} required/></div>
+                <div className="form-group"><label htmlFor="gastoMonto">Monto:</label><input type="text" id="gastoMonto" name="monto" value={gastoForm.monto} onChange={handleGastoFormChange} maxLength={11} required /></div>
+                <div className="form-group"><label htmlFor="gastoComprobante">Nº Comprobante/Referencia:</label><input type="text" id="gastoComprobante" name="comprobante" value={gastoForm.comprobante} onChange={handleGastoFormChange} maxLength={100} required/></div>
                 <div className="form-group"><label htmlFor="gastoMotivo">Motivo/Descripción del Gasto:</label><textarea id="gastoMotivo" maxLength={50} name="motivo" value={gastoForm.motivo} onChange={handleGastoFormChange} rows="3" required /></div>
                 <button type="submit" className="modal-submit-button" disabled={isSubmitting || isSavingDraft}>Guardar Gasto</button>
             </form>
@@ -1439,8 +1521,8 @@ function RectificarPage() {
          <div className="modal-overlay open" onClick={() => setIsBoletaModalOpen(false) }>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>                <button type="button" className="modal-close-button" onClick={() => setIsBoletaModalOpen(false)}><span className="material-symbols-outlined">close</span></button>                <h3>Ingresar Boleta</h3>
                 <form onSubmit={handleSaveBoleta} className="modal-form">
-                    <div className="form-group"><label htmlFor="boletaMonto">Monto Boleta:</label><input type="text" id="boletaMonto" name="monto" value={boletaForm.monto} onChange={handleBoletaFormChange} required /></div>
-                    <div className="form-group"><label htmlFor="boletaNumero">Nº Boleta:</label><input type="text" id="boletaNumero" name="numeroBoleta" value={boletaForm.numeroBoleta} onChange={handleBoletaFormChange} required /></div>
+                    <div className="form-group"><label htmlFor="boletaMonto">Monto Boleta:</label><input type="text" id="boletaMonto" name="monto" value={boletaForm.monto} onChange={handleBoletaFormChange} maxLength={11} required /></div>
+                    <div className="form-group"><label htmlFor="boletaNumero">Nº Boleta:</label><input type="text" id="boletaNumero" name="numeroBoleta" value={boletaForm.numeroBoleta} onChange={handleBoletaFormChange} maxLength={100} required /></div>
                     <div className="form-group">
                         <label htmlFor="boletaEstadoBoleta">
                             Estado Boleta:
@@ -1487,7 +1569,7 @@ function RectificarPage() {
                                         <td data-label="N°" className="vj-cell-index">{idx + 1}</td>
                                         <td data-label="Motivo" className="vj-cell-motivo" title={j.motivo}>{j.motivo}</td>
                                         <td data-label="Tipo" className="vj-cell-tipo">{j.tipo === 'sobrante' ? 'Sobrante' : 'Faltante'}</td>
-                                        <td data-label="Monto" className="vj-cell-monto">{formatCurrency(j.monto)}</td>
+                                        <td data-label="Monto" className="vj-cell-monto">{formatCurrency(Math.abs(j.monto))}</td>
                                         {finalIsFormEditable && (
                                           <td data-label="Acción">
                                             <button

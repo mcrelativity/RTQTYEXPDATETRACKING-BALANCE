@@ -1580,6 +1580,41 @@ a { text-decoration: none; color: inherit; }
 }
 
 @media (max-width: 767px) {
+    /* Mejora: apilar botones de acción y separar en la celda de Acciones */
+    .excel-style-table td[data-label="Acciones"] {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px;
+        min-height: 56px;
+    }
+    .excel-style-table td[data-label="Acciones"] .action-icon-button {
+        margin-bottom: 6px;
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3em;
+    }
+    .excel-style-table td[data-label="Acciones"] .action-icon-button:last-child {
+        margin-bottom: 0;
+    }
+    /* Mejorar el corte de texto en celdas */
+    .excel-style-table td {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    .excel-style-table .justification-entry {
+        grid-template-columns: 32px 1fr 60px !important;
+        max-width: 100%;
+        gap: 4px;
+    }
+    .excel-style-table .justification-entry span {
+        max-width: 100%;
+        font-size: 0.97em;
+    }
     .excel-style-table thead {
         display: none;
     }
@@ -1666,87 +1701,100 @@ a { text-decoration: none; color: inherit; }
 }
 
 @media (max-width: 480px) {
-    .rectificar-page-container {
-        padding: 15px 3vw; /* Consistent padding for the page container */
+    /* --- GENERAL TABLE CELL PADDING AND FONT --- */
+    .excel-style-table th, .excel-style-table td,
+    .mini-table th, .mini-table td {
+        padding: 8px 6px !important; /* Reduced padding for smaller screens */
+        font-size: 0.88em !important; /* Slightly adjust base font for tables */
+        line-height: 1.35;
+        white-space: normal !important; /* Allow text to wrap */
+        word-break: break-word !important; /* Break long words */
+        vertical-align: top; /* Align content to top for better readability if cells have varying heights */
     }
 
-    .rectificar-page-header .header-content-wrapper {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+    /* --- ACCIONES EN TABLAS: Ensure buttons have space and wrap --- */
+    .excel-style-table td[data-label="Acciones"],
+    .mini-table td[data-label="Acciones"],
+    .excel-style-table td[data-label="Acción"],
+    .mini-table td[data-label="Acción"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important; /* Allow buttons to wrap to next line */
+        gap: 5px !important; /* Space between buttons */
+        align-items: center !important;
+        justify-content: flex-start !important; /* Align buttons to the start */
+        min-height: auto !important; /* Let content define height */
+        min-width: 75px; /* Ensure a minimum width for action columns */
     }
 
-    .rectificar-page-header .header-actions button {
+    .action-icon-button {
+        min-width: 30px !important;
+        min-height: 30px !important;
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 1em !important; /* Overall button size influence */
+        padding: 0 !important;
+        margin: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    .action-icon-button .material-symbols-outlined {
+      font-size: 18px !important; /* Explicit icon visual size */
+    }
+
+    /* --- TEXTO LARGO EN CELDAS: Focus on wrapping and readability --- */
+    /* Rules for these specific cells are removed as general td styling should cover them.
+       If specific overrides are needed later, they can be re-added. */
+
+    /* Specific fix for "Motivo" span within "Justificaciones" cell */
+    .excel-style-table td[data-label="Justificaciones"] .justification-entry > span:nth-child(2) { /* Targets the motivo span */
+        white-space: normal !important;
+        text-overflow: unset !important;
+        overflow: visible !important;
+        max-width: none !important; /* Remove fixed max-width to allow full wrap */
+        word-break: break-word !important; /* Ensure word breaking for this specific span */
+    }
+    
+    /* Ensure the grid columns in justification-entry are flexible for mobile */
+    .excel-style-table td[data-label="Justificaciones"] .justification-entry {
+        grid-template-columns: auto 1fr auto !important; /* Icon | Motivo (flexible) | Monto */
+        gap: 4px !important; /* Adjust gap within the entry */
+        align-items: flex-start; /* Align items to the start of the cross axis */
+    }
+    .excel-style-table td[data-label="Justificaciones"] .justification-entry > span {
+        line-height: 1.3; /* Ensure consistent line height for wrapped text */
+    }
+
+
+    /* --- "INGRESAR BOLETA" / "AGREGAR GASTO" BUTTON --- */
+    .add-item-button {
+        font-size: 0.9em !important;
+        padding: 8px 12px !important; /* Slightly reduced vertical padding */
+        min-width: 0 !important;
         width: 100%;
-        margin-bottom: 8px;
-        font-size: 0.95em;
-        padding: 10px 8px;
-    }
-    .rectificar-page-header .header-actions button:last-child {
-        margin-bottom: 0;
-    }
-
-    .excel-style-table tr { /* Ensure TR has the margin for row separation */
-        margin-bottom: 15px;
-    }
-
-    .excel-style-table td {
-        text-align: right; 
-        padding-left: 45%; /* Space for the label */
-        position: relative;
-        border: none;
-        border-bottom: 1px dotted #eee;
-        padding-top: 12px; /* Increased padding for vertical space */
-        padding-bottom: 12px; /* Increased padding for vertical space */
-        margin-bottom: 0; /* Removed, tr handles spacing between rows */
-        min-height: 44px; /* Adjusted min-height for better touch and content fit */
-    }
-    .excel-style-table td:last-child {
-        border-bottom: none;
-    }
-
-    .excel-style-table td::before {
-        content: attr(data-label);
-        position: absolute;
-        left: 10px;
-        top: 12px; /* Align with td padding-top */
-        width: calc(45% - 20px); /* td padding-left (45%) - left offset (10px) - own padding-right (10px) */
-        padding-right: 10px;
-        font-weight: bold;
-        text-align: left;
-        font-size: 0.85em; /* Slightly smaller label font for more space */
-        color: var(--color-text-secondary, #34495e);
-        white-space: normal;    /* Allow label to wrap */
-        word-break: break-word; /* Break long words */
-        line-height: 1.3;       /* Adjust line height for wrapped labels */
-    }
-
-    /* Specific fix for input fields in stacked tables on mobile */
-    .excel-style-table td input[type="text"],
-    .excel-style-table td input[type="number"],
-    .excel-style-table td textarea {
-        display: block !important; /* Ensure block behavior */
-        width: 100% !important; /* Full width of td's content box */
-        float: none !important;
+        margin-bottom: 12px !important;
         box-sizing: border-box !important;
-        margin: 0 !important; /* Remove any margin on inputs themselves */
-        padding: 8px 6px; 
-        font-size: 0.95em;
-        border: 1px solid #b0bec5; /* Slightly softer border color */
-        border-radius: 4px;
-        background-color: #fff; /* Ensure background color */
+    }
+    .add-item-button .material-symbols-outlined {
+        font-size: 1.1em !important; /* Icon size within button */
+        margin-right: 6px !important;
     }
 
-    .review-actions-form .action-buttons {
-        flex-direction: column;
+    /* --- OCULTAR CELDA VACÍA DE JUSTIFICACIONES EN MÓVIL --- */
+    .excel-style-table .justificaciones-cell:empty {
+        display: none !important;
     }
-    .review-actions-form .action-buttons button {
-        width: 100%;
-        padding: 12px 10px;
-        font-size: 1em;
+
+    /* --- OCULTAR HINT TEXT EN MÓVIL --- */
+    .justify-hint-mobile {
+        display: none !important;
     }
+
+    /* --- REVERTING PREVIOUS display:block ATTEMPTS for specific cells --- */
+    /* These were making cells behave like blocks, potentially breaking table row structure. */
+    /* Rely on natural table flow and text wrapping. */
+    /* Empty ruleset for .excel-style-table td[data-label^="Nº Boleta"], .mini-table td[data-label^="Comprobante"] removed */
 }
-
-/* ...existing code... */
 
 /* === FIN ESTILOS RESPONSIVOS PARA RECTIFICARPAGE === */

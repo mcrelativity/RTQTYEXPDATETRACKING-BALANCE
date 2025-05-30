@@ -326,7 +326,7 @@
 /* Ensure inputs in tables don't break layout on small screens - base style */
 /* Specific responsive overrides for this are now in index.css */
 .excel-style-table td input[type="text"] { /* This is a more general rule, might conflict/be overridden by the one at line 67 */
-    max-width: 150px; /* Adjust as needed */
+    max-width: 400px; /* Adjust as needed */
 }
 
 /* Removed all @media blocks as they have been moved to index.css */
