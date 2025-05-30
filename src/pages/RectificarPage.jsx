@@ -987,7 +987,7 @@ function RectificarPage() {
             <p><strong>Local:</strong> {Array.isArray(formState.sessionData?.crm_team_id) ? formState.sessionData.crm_team_id[1] : 'N/A'}</p>
             <p><strong>Usuario:</strong> {Array.isArray(formState.sessionData?.user_id) ? formState.sessionData.user_id[1] : 'N/A'}</p>
             <p><strong>Inicio:</strong> {formatDateTime(formState.sessionData?.start_at)}</p>
-            <p><strong>Termino:</strong> {formatDateTime(formState.sessionData?.stop_at)}</p>
+            <p><strong>Término:</strong> {formatDateTime(formState.sessionData?.stop_at)}</p>
           </div>
         </section>
 
