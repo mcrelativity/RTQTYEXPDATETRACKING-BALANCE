@@ -1023,7 +1023,7 @@ function RectificarPage() {
                   <td data-label="Acciones">
                     {finalIsFormEditable && puedeJustificarEfectivoCalculated && 
                         <button 
-                            onClick={() => openItemJustificationModal({ id: efectivoConfig.id, name: efectivoConfig.display_name, sistema: efectivoOdoo, fisicoEditable: mainFormData.nuevoSaldoFinalRealEfectivo })} 
+                            onClick={() => openItemJustificationModal({ id: 'efectivo', name: efectivoConfig.display_name, sistema: efectivoOdoo, fisicoEditable: formState.mainFormData.nuevoSaldoFinalRealEfectivo })} 
                             className="action-icon-button justify" title="Justificar Efectivo" disabled={isSubmitting || isSavingDraft}>
                             <span className="material-symbols-outlined">edit_note</span>
                         </button>
@@ -1347,23 +1347,22 @@ function RectificarPage() {
         )}
       </div>
 
-      {isItemJustificationModalOpen && currentItemForJustification && (
+      {isItemJustificationModalOpen && (
         <div className="modal-overlay open" onClick={() => setIsItemJustificationModalOpen(false) }>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="modal-close-button" onClick={() => setIsItemJustificationModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
-            <h3>Justificar: {currentItemForJustification.name}</h3>
+            <h3>Justificar: {currentItemForJustification?.name || 'Método'}</h3>
             <form onSubmit={handleSaveItemJustification} className="modal-form">
-              <p>Monto Sistema: {formatCurrency(currentItemForJustification.sistema)}</p>
-              <p>Monto Físico Ingresado (actual): {formatCurrency(parseFloat(parseInputAmount(currentItemForJustification.fisicoEditable)) || currentItemForJustification.sistema)}</p>
+              <p>Monto Sistema: {formatCurrency(currentItemForJustification?.sistema || 0)}</p>
+              <p>Monto Físico Ingresado (actual): {formatCurrency(parseFloat(parseInputAmount(currentItemForJustification?.fisicoEditable)) || currentItemForJustification?.sistema || 0)}</p>
               <div className="form-group">
                 <label htmlFor="itemJustTipo">Tipo de Justificación:</label>
                 <select
                   id="itemJustTipo"
-                 
                   name="tipo"
                   value={itemJustificationForm.tipo || 'faltante'}
                   onChange={e => setItemJustificationForm(prev => ({ ...prev, tipo: e.target.value }))}
-                  required                >
+                  required>
                   <option value="faltante">Faltante</option>
                   <option value="sobrante">Sobrante</option>
                 </select>
