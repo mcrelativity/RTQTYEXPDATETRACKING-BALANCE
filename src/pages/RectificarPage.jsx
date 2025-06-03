@@ -1,5 +1,3 @@
-// ...existing code...
-// ...existing code...
 /**
  * @file RectificarPage.jsx
  * @description
@@ -14,7 +12,7 @@
  * - Renderizado condicional según rol y estado de la solicitud.
  * - Manejo de errores, notificaciones y animaciones de confirmación.
  *
- * @author (Documentación) Revisada por GitHub Copilot
+ * @author Documentación Revisada por GitHub Copilot
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
