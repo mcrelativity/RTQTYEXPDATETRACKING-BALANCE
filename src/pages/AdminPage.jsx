@@ -147,7 +147,7 @@ function AdminPage() {
         return dataByStore;
     }, [searchedEntries, productsData]);
 
-
+    //Preparar para excel la data
     const prepareConsolidatedDataForStoreSheet = (storeEntries) => {
         const storeConsolidated = {};
         storeEntries.forEach(entry => {
