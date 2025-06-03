@@ -1339,7 +1339,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button attention"
-                                    title="Atención: Diferencia sin Justificar (Superadmin)"
+                                    title="Atención: Diferencia sin Justificar"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">warning</span>
@@ -1349,7 +1349,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button accept"
-                                    title="Revisado OK: Sin Diferencias (Superadmin)"
+                                    title="Revisado OK: Sin Diferencias"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">check_circle</span>
@@ -1480,7 +1480,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button attention"
-                                      title={`Atención: Diferencia sin Justificar en ${item.name} (Superadmin)`}
+                                      title={`Atención: Diferencia sin Justificar en ${item.name}`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">warning</span>
@@ -1490,7 +1490,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button accept"
-                                      title={`Revisado OK: Sin Diferencias en ${item.name} (Superadmin)`}
+                                      title={`Revisado OK: Sin Diferencias en ${item.name}`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">check_circle</span>
