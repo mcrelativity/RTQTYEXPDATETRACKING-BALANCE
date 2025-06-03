@@ -59,13 +59,13 @@
   border-radius: 4px;
 }
 .modern-skeleton-action-button {
-  /* Inherits from modern-skeleton-element */
+  /* Hereda de modern-skeleton-element */
   border-radius: 4px;
 }
 
-/* Skeleton for Header Card */
+/* Esqueleto para Tarjeta de Encabezado */
 .modern-skeleton-header-card {
-  padding-bottom: 50px; /* Space for absolutely positioned button */
+  padding-bottom: 50px; /* Espacio para botón posicionado absolutamente */
 }
 
 /* Styles for the table skeleton */

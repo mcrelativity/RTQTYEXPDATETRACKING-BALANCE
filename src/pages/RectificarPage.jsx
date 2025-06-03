@@ -1,4 +1,5 @@
-
+// ...existing code...
+// ...existing code...
 /**
  * @file RectificarPage.jsx
  * @description
@@ -199,7 +200,7 @@ async function callOdooApi(apiUrl, requestData) {
       throw new Error(errorMsg);
     }
     return await response.json();
-  } catch (error) { console.error("Error calling Odoo API:", error); throw error; }
+  } catch (error) { console.error("Error llamando API de Odoo:", error); throw error; }
 }
 
 /**
@@ -302,24 +303,14 @@ function sanitizeForFirebase(dataObject) {
  * @returns {JSX.Element} Página de rectificación con formularios, justificaciones y flujos de aprobación.
  */
 function RectificarPage() {
-  /**
-   * Estado para el modal de error elegante.
-   * @type {{open: boolean, message: string}}
-   */
-  const [errorModal, setErrorModal] = useState({ open: false, message: '' });
   // --- Hooks de React Router y Auth ---
-  /**
-   * Hooks de navegación y autenticación.
-   * @type {function} navigate - Navegación programática.
-   * @type {object} location - Ubicación y estado de navegación.
-   * @type {string} sessionId - ID de la sesión POS desde la URL.
-   * @type {object} currentUser - Usuario autenticado.
-   * @type {string} userRole - Rol del usuario ('admin' o 'superadmin').
-   */
   const navigate = useNavigate();
   const location = useLocation();
   const { sessionId } = useParams();
   const { currentUser, userRole } = useAuth();
+
+  // --- Todos los hooks de estado SIEMPRE antes de cualquier return temprano ---
+  const [errorModal, setErrorModal] = useState({ open: false, message: '' });
 
   /**
    * Robustez: Si no viene existingRequestId en location.state, buscarlo automáticamente en Firebase (solo para admins).
@@ -484,7 +475,7 @@ function RectificarPage() {
     let modeToUse = passedMode || 'view_only';
     let reqIdToUse = passedReqId;
 
-    // Defensive fallback: always create a minimal session object if missing
+    // Fallback defensivo: siempre crear un objeto de sesión mínimo si falta
     if (!sessionToUse && urlSessionIdParam) {
       sessionToUse = { id: parseInt(urlSessionIdParam, 10), name: `Sesión ${urlSessionIdParam}` };
     }
@@ -545,7 +536,7 @@ function RectificarPage() {
         // No hay rectificación existente
       }
 
-      // Compose atomic state update for paymentDetails and mainFormData
+      // Componer actualización atómica de estado para paymentDetails y mainFormData
       const initialPaymentDetails = DEFAULT_PAYMENT_METHODS_CONFIG.map(defaultMethod => {
         if (defaultMethod.isCash) return null;
         let odooAmount = 0;
@@ -587,10 +578,10 @@ function RectificarPage() {
   // Efecto maestro: carga datos base y aplica borrador de forma secuencial y atómica
   useEffect(() => {
     let cancelled = false;
-    // Si la sesión está sin rectificar, no esperar existingRequestId ni autoRequestId
-    const isSinRectificar = location.state?.mode === 'create' || (formState.sessionData && formState.sessionData.rectificationStatus === 'sin_rectificar');
-    if (userRole === 'admin' && !isSinRectificar && !location.state?.existingRequestId && !autoRequestId) return;
     async function cargarTodo() {
+      // Si la sesión está sin rectificar, no esperar existingRequestId ni autoRequestId
+      const isSinRectificar = location.state?.mode === 'create' || (formState.sessionData && formState.sessionData.rectificationStatus === 'sin_rectificar');
+      if (userRole === 'admin' && !isSinRectificar && !location.state?.existingRequestId && !autoRequestId) return;
       setLoadingState(s => ({ ...s, isReadyToShow: false, isDraftBeingApplied: true, isInitialLoading: true }));
       try {
         try {
@@ -654,8 +645,15 @@ function RectificarPage() {
       formState.paymentDetails && Array.isArray(formState.paymentDetails)
     ) {
       setLoadingState(s => ({ ...s, isReadyToShow: true }));
+    }  }, [formState, loadingState.isInitialLoading, loadingState.isDraftBeingApplied]);
+    // Efecto para limpiar solo monto y motivo al abrir el modal (el tipo se establece dinámicamente en openItemJustificationModal)
+  useEffect(() => {
+    if (isItemJustificationModalOpen) {
+      // Solo limpiar monto y motivo, mantener el tipo que fue calculado dinámicamente
+      setItemJustificationForm(prev => ({ ...prev, monto: '', motivo: '' }));
     }
-  }, [formState, loadingState.isInitialLoading, loadingState.isDraftBeingApplied]);
+  }, [isItemJustificationModalOpen]);
+
   const handleSaveDraft = async () => {
     if (!formState.sessionData || userRole !== 'admin' || formState.pageMode !== 'create') {
       setErrorModal({ open: true, message: "Solo los administradores pueden guardar borradores en modo creación." });
@@ -705,15 +703,21 @@ function RectificarPage() {
       }
     }
   };
-
   // Handler universal para cambios en el formulario principal (usa setFormState atómico)
   const handleMainFormChange = (e) => {
     const { name, value } = e.target;
+    let processedValue = value;
+    
+    // Para campos de monto físico, solo permitir números enteros positivos
+    if (name === 'nuevoSaldoFinalRealEfectivo') {
+      processedValue = parseInputAmount(value);
+    }
+    
     setFormState(prev => ({
       ...prev,
       mainFormData: {
         ...prev.mainFormData,
-        [name]: value
+        [name]: processedValue
       }
     }));
   };
@@ -728,11 +732,39 @@ function RectificarPage() {
       )
     }));
   };
-
   // Abrir modal de justificación de ítem
   const openItemJustificationModal = (item) => {
     setCurrentItemForJustification(item);
-    setItemJustificationForm({ monto: '', motivo: '', tipo: 'faltante' });
+      // Calcular la diferencia actual para determinar el tipo por defecto
+    let diferenciaActual = 0;
+    let tipoByDefault = 'faltante';
+    
+    if (item.id === 'efectivo') {
+      // Manejo especial para efectivo
+      const sistemaEfectivo = efectivoOdoo;
+      const fisicoEfectivo = efectivoFisicoParaDisplay;
+      const totalJustificadoEfectivo = (formState.itemJustifications?.[item.name] || []).reduce((sum, j) => sum + (parseFloat(j.monto)||0), 0);
+      const diferenciaBrutaEfectivo = fisicoEfectivo - sistemaEfectivo;
+      // Aplicar lógica consistente: siempre sumar las justificaciones (ya tienen el signo correcto)
+      diferenciaActual = diferenciaBrutaEfectivo + totalJustificadoEfectivo;
+    } else {
+      // Manejo para otros métodos de pago (ahora consistente con efectivo)
+      const paymentItem = formState.paymentDetails?.find(p => p.name === item.name);
+      if (paymentItem) {
+        const fisicoItemNumerico = paymentItem.fisicoEditable !== undefined && paymentItem.fisicoEditable !== '' 
+          ? parseFloat(paymentItem.fisicoEditable) 
+          : paymentItem.sistema;
+        const totalJustificadoItem = (formState.itemJustifications?.[paymentItem.name] || []).reduce((sum, j) => sum + (parseFloat(j.monto)||0), 0);
+        const diferenciaItemBruta = fisicoItemNumerico - paymentItem.sistema;
+        // Aplicar lógica consistente: siempre sumar las justificaciones (ya tienen el signo correcto)
+        diferenciaActual = diferenciaItemBruta + totalJustificadoItem;
+      }
+    }
+    
+    // Establecer tipo por defecto basado en la diferencia
+    tipoByDefault = diferenciaActual > 0 ? 'sobrante' : 'faltante';
+    
+    setItemJustificationForm({ monto: '', motivo: '', tipo: tipoByDefault });
     setIsItemJustificationModalOpen(true);
   };
 
@@ -759,12 +791,14 @@ function RectificarPage() {
     }
     if (itemJustificationForm.motivo.trim().length > 100) {
       setErrorModal({ open: true, message: 'El motivo no puede exceder los 100 caracteres.' }); return;
-    }
-    const keyToUpdate = currentItemForJustification.id === 'efectivo'
+    }    const keyToUpdate = currentItemForJustification.id === 'efectivo'
       ? DEFAULT_PAYMENT_METHODS_CONFIG.find(m => m.isCash).display_name
       : currentItemForJustification.name;
     setFormState(prev => {
       const existingJustsArray = prev.itemJustifications[keyToUpdate] || [];
+      // Lógica corregida: 
+      // - tipo 'sobrante': monto negativo (reduce diferencias positivas)
+      // - tipo 'faltante': monto positivo (reduce diferencias negativas)
       const montoFinal = tipo === 'sobrante' ? -Math.abs(monto) : Math.abs(monto);
       const newJustificationEntry = { monto: montoFinal, motivo: itemJustificationForm.motivo.trim(), tipo, timestamp: Date.now() };
       return {
@@ -825,14 +859,14 @@ function RectificarPage() {
     } else {
         setBoletaForm(prev => ({ ...prev, [name]: value }));
     }
-  };
-  // --- Guardar boleta ingresada en el estado correspondiente ---
+  };  // --- Guardar boleta ingresada en el estado correspondiente ---
   const handleSaveBoleta = (e) => {
     e.preventDefault();
     const monto = parseFloat(boletaForm.monto);
-    if (isNaN(monto) || monto <= 0 || boletaForm.numeroBoleta.trim() === '') { setErrorModal({ open: true, message: 'Monto válido y número de boleta son requeridos.' }); return; }
-      {/* Modal de error elegante para validaciones */}
-      <ErrorModal open={errorModal.open} message={errorModal.message} onClose={() => setErrorModal({ open: false, message: '' })} />
+    if (isNaN(monto) || monto <= 0 || boletaForm.numeroBoleta.trim() === '') { 
+      setErrorModal({ open: true, message: 'Monto válido y número de boleta son requeridos.' }); 
+      return; 
+    }
     setFormState(prev => ({
       ...prev,
       boletasPendientes: [
@@ -1080,7 +1114,6 @@ function RectificarPage() {
 
   // Diferencia NETA final para el efectivo, después de todas las justificaciones.
   const diferenciaEfectivoNeta = diferenciaBrutaConBoletas + totalJustificadoEfectivo;
-
   // Genera el título de la página dinámicamente.
   const getPageTitle = () => {
     const sessionName = formState.sessionData?.name || `ID: ${sessionId}`;
@@ -1095,12 +1128,6 @@ function RectificarPage() {
     if (formState.pageMode === 'view_only' && !formState.existingRectification) return `Detalle Sesión (Sin Rectificar): ${sessionName}`;
     return `Rectificación Sesión: ${sessionName}`;
   };
-    // Renderizado condicional optimizado
-  if (!loadingState.isReadyToShow) return <RectificarSkeletonLoader />;
-  if (showConfirmAnim) return <RectificarConfirmAnimation success={confirmAnimSuccess} message={confirmAnimMsg} desc={confirmAnimDesc} />;
-  if (error && !formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
-  if (!formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
- 
 
   // Variable final para determinar si el formulario debe ser editable.
   // Solo los admin pueden editar en modo 'create'. Los superadmin y los admin pueden visualizar rectificaciones ya enviadas.
@@ -1110,7 +1137,6 @@ function RectificarPage() {
   // Condición para mostrar el botón de justificar efectivo.
   const puedeJustificarEfectivoCalculated = finalIsFormEditable && (diferenciaBrutaConBoletas !== 0 || diferenciaEfectivoNeta !== 0);
 
-
   // Utilidad para formatear fecha/hora legible
   function formatDateTimeDraft(ts) {
     if (!ts) return '';
@@ -1119,6 +1145,13 @@ function RectificarPage() {
       return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
     } catch { return ts; }
   }
+
+  // Renderizado condicional optimizado
+  if (!loadingState.isReadyToShow) return <RectificarSkeletonLoader />;
+  if (showConfirmAnim) return <RectificarConfirmAnimation success={confirmAnimSuccess} message={confirmAnimMsg} desc={confirmAnimDesc} />;
+  if (error && !formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-error">Error: {error} <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
+  if (!formState.sessionData && !isLoading && !draftState.isApplying) return <div className="page-loading">No hay datos de sesión. <button onClick={() => navigate('/cuadraturas')}>Volver</button></div>;
+
   return (
     <div className="rectificar-page-container">
       {/* Notificación temporal unificada */}
@@ -1209,9 +1242,8 @@ function RectificarPage() {
                   <td data-label="Físico">{finalIsFormEditable ? (
                       <input
                         type="text"
-                        min="1"
-                        step="1"
-                        pattern="[0-9-]*"
+                        min="1"                        step="1"
+                        pattern="[0-9]*"
                         inputMode="numeric"
                         autoComplete="off"
                         name="nuevoSaldoFinalRealEfectivo"
@@ -1226,24 +1258,56 @@ function RectificarPage() {
                   </td>
                   <td data-label="Diferencia" className={diferenciaEfectivoNeta !== 0 ? (diferenciaEfectivoNeta < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaEfectivoNeta)}</td>
                   <td data-label="Justificaciones" className="justificaciones-cell">
-                    {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => (
-                      <div key={idx} title={j.motivo} className="justification-entry" style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px', alignItems: 'center', minWidth: 0 }}>
-                        <span style={{ color: j.tipo === 'faltante' ? 'red' : 'green', fontWeight: 'bold', textAlign: 'right', width: 28, display: 'inline-block' }}>
-                          {j.tipo === 'faltante' ? 'F' : 'S'}:
-                        </span>
-                        <span style={{
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          maxWidth: 120,
-                          display: 'inline-block',
-                          verticalAlign: 'middle',
-                        }}>{j.motivo}</span>
-                        <span style={{ textAlign: 'right', width: 80, display: 'inline-block', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(Math.abs(j.monto))}</span>
-                      </div>
-                    )) : (finalIsFormEditable && puedeJustificarEfectivoCalculated ? (
-                      <span className="text-muted-italic justify-hint-mobile">Click en lápiz para justificar</span>
-                    ) : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
+                      {justificacionesEfectivo.length > 0 ? justificacionesEfectivo.map((j, idx) => (
+                        <div
+                          key={idx}
+                          title={j.motivo}
+                          className="justification-entry"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '32px 1fr 90px',
+                            alignItems: 'center',
+                            minWidth: 0,
+                            width: '100%'
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: j.tipo === 'faltante' ? 'red' : 'green',
+                              fontWeight: 'bold',
+                              textAlign: 'right',
+                              width: 28,
+                              display: 'inline-block'
+                            }}
+                          >
+                            {j.tipo === 'faltante' ? 'F' : 'S'}:
+                          </span>
+                          <span
+                            style={{
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '100%',
+                              display: 'block',
+                              verticalAlign: 'middle'
+                            }}
+                          >
+                            {j.motivo}
+                          </span>
+                          <span
+                            style={{
+                              textAlign: 'right',
+                              width: 80,
+                              display: 'inline-block',
+                              fontVariantNumeric: 'tabular-nums'
+                            }}
+                          >
+                            {formatCurrency(Math.abs(j.monto))}
+                          </span>
+                        </div>
+                      )) : (finalIsFormEditable && puedeJustificarEfectivoCalculated ? (
+                        <span className="text-muted-italic justify-hint-mobile">Click en lápiz para justificar</span>
+                      ) : ((diferenciaBrutaConBoletas === 0 && diferenciaEfectivoNeta === 0) ? 'OK' : 'N/A'))}
                   </td>
                   <td data-label="Acciones">
                     {finalIsFormEditable && puedeJustificarEfectivoCalculated && 
@@ -1314,20 +1378,19 @@ function RectificarPage() {
                     fisicoItemNumerico = parseFloat(parseInputAmount(fisicoItemParaDisplayValue));
                     if(isNaN(fisicoItemNumerico)) fisicoItemNumerico = 0;
                 }
-                
-                const diferenciaItemBruta = fisicoItemNumerico - item.sistema;
-                const diferenciaItemNetaConJustificaciones = diferenciaItemBruta > 0 ? diferenciaItemBruta - totalJustificadoItem : diferenciaItemBruta + totalJustificadoItem;
-                const puedeJustificarItemCurrent = finalIsFormEditable && diferenciaItemBruta !== 0;
+                  const diferenciaItemBruta = fisicoItemNumerico - item.sistema;
+                // Aplicar lógica consistente: siempre sumar las justificaciones (ya tienen el signo correcto)
+                const diferenciaItemNetaConJustificaciones = diferenciaItemBruta + totalJustificadoItem;
+                               const puedeJustificarItemCurrent = finalIsFormEditable && diferenciaItemBruta !== 0;
 
                 return (
                   <tr key={item.id}>
                     <td data-label="Método">{item.name}</td><td data-label="Sistema">{formatCurrency(item.sistema)}</td>
-                    <td data-label="Físico">{finalIsFormEditable ? (
-                      <input
+                    <td data-label="Físico">{finalIsFormEditable ? (                      <input
                         type="text"
                         min="1"
                         step="1"
-                        pattern="[0-9-]*"
+                        pattern="[0-9]*"
                         inputMode="numeric"
                         autoComplete="off"
                         maxLength={11}
@@ -1341,19 +1404,51 @@ function RectificarPage() {
                     <td data-label="Diferencia" className={diferenciaItemNetaConJustificaciones !== 0 ? (diferenciaItemNetaConJustificaciones < 0 ? 'text-red' : 'text-green') : ''}>{formatCurrency(diferenciaItemNetaConJustificaciones)}</td>
                     <td data-label="Justificaciones" className="justificaciones-cell">
                       {justsArray.length > 0 ? justsArray.map((j, idx) => (
-                        <div key={idx} title={j.motivo} className="justification-entry" style={{ display: 'grid', gridTemplateColumns: '32px 1fr 90px', alignItems: 'center', minWidth: 0 }}>
-                          <span style={{ color: j.tipo === 'faltante' ? 'red' : 'green', fontWeight: 'bold', textAlign: 'right', width: 28, display: 'inline-block' }}>
+                        <div
+                          key={idx}
+                          title={j.motivo}
+                          className="justification-entry"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '32px 1fr 90px',
+                            alignItems: 'center',
+                            minWidth: 0,
+                            width: '100%'
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: j.tipo === 'faltante' ? 'red' : 'green',
+                              fontWeight: 'bold',
+                              textAlign: 'right',
+                              width: 28,
+                              display: 'inline-block'
+                            }}
+                          >
                             {j.tipo === 'faltante' ? 'F' : 'S'}:
                           </span>
-                          <span style={{
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            maxWidth: 120,
-                            display: 'inline-block',
-                            verticalAlign: 'middle',
-                          }}>{j.motivo}</span>
-                          <span style={{ textAlign: 'right', width: 80, display: 'inline-block', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(Math.abs(j.monto))}</span>
+                          <span
+                            style={{
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '100%',
+                              display: 'block',
+                              verticalAlign: 'middle'
+                            }}
+                          >
+                            {j.motivo}
+                          </span>
+                          <span
+                            style={{
+                              textAlign: 'right',
+                              width: 80,
+                              display: 'inline-block',
+                              fontVariantNumeric: 'tabular-nums'
+                            }}
+                          >
+                            {formatCurrency(Math.abs(j.monto))}
+                          </span>
                         </div>
                       )) : (finalIsFormEditable && puedeJustificarItemCurrent ? (
                         <span className="text-muted-italic justify-hint-mobile">Click en lápiz para justificar</span>
@@ -1597,9 +1692,47 @@ function RectificarPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="modal-close-button" onClick={() => setIsItemJustificationModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
             <h3>Justificar: {currentItemForJustification?.name || 'Método'}</h3>
+            {/* Diferencia actual en este método de pago (estética y valor igual a la tabla) */}
+            {/* Diferencia actual en este método de pago (debajo del monto físico) */}
             <form onSubmit={handleSaveItemJustification} className="modal-form">
               <p>Monto Sistema: {formatCurrency(currentItemForJustification?.sistema || 0)}</p>
-              <p>Monto Físico Ingresado (actual): {formatCurrency(parseFloat(parseInputAmount(currentItemForJustification?.fisicoEditable)) || currentItemForJustification?.sistema || 0)}</p>
+              <p>Monto Físico Ingresado (actual): {formatCurrency(parseFloat(parseInputAmount(currentItemForJustification?.fisicoEditable)) || currentItemForJustification?.sistema || 0)}</p>              {(() => {
+                if (!currentItemForJustification) return null;
+                  // Manejo especial para efectivo
+                if (currentItemForJustification.id === 'efectivo') {
+                  const sistemaEfectivo = efectivoOdoo;
+                  const fisicoEfectivo = efectivoFisicoParaDisplay;
+                  const totalJustificadoEfectivo = (formState.itemJustifications?.[currentItemForJustification.name] || []).reduce((sum, j) => sum + (parseFloat(j.monto)||0), 0);
+                  const diferenciaBrutaEfectivo = fisicoEfectivo - sistemaEfectivo;
+                  // Aplicar lógica consistente: siempre sumar las justificaciones (ya tienen el signo correcto)
+                  const diferenciaNetaEfectivo = diferenciaBrutaEfectivo + totalJustificadoEfectivo;
+                  let diffClass = '';
+                  if (diferenciaNetaEfectivo !== 0) diffClass = diferenciaNetaEfectivo < 0 ? 'text-red' : 'text-green';
+                  return (
+                    <div style={{margin: '4px 0 0 0', textAlign: 'center', fontWeight: 'normal', fontSize: 16, paddingBottom: 2}}>
+                      <span style={{fontWeight: 'normal'}}>Diferencia actual en este método: </span>
+                      <span className={diffClass} style={{fontWeight: 'normal'}}>{formatCurrency(diferenciaNetaEfectivo)}</span>
+                    </div>
+                  );
+                }
+                
+                // Manejo para otros métodos de pago (ahora consistente con efectivo)
+                const item = formState.paymentDetails?.find(p => p.name === currentItemForJustification.name);
+                if (!item) return null;
+                const fisicoItemNumerico = item.fisicoEditable !== undefined && item.fisicoEditable !== '' ? parseFloat(item.fisicoEditable) : item.sistema;
+                const totalJustificadoItem = (formState.itemJustifications?.[item.name] || []).reduce((sum, j) => sum + (parseFloat(j.monto)||0), 0);
+                const diferenciaItemBruta = fisicoItemNumerico - item.sistema;
+                // Aplicar lógica consistente: siempre sumar las justificaciones (ya tienen el signo correcto)
+                const diferenciaItemNetaConJustificaciones = diferenciaItemBruta + totalJustificadoItem;
+                let diffClass = '';
+                if (diferenciaItemNetaConJustificaciones !== 0) diffClass = diferenciaItemNetaConJustificaciones < 0 ? 'text-red' : 'text-green';
+                return (
+                  <div style={{margin: '4px 0 0 0', textAlign: 'center', fontWeight: 'normal', fontSize: 16, paddingBottom: 2}}>
+                    <span style={{fontWeight: 'normal'}}>Diferencia actual en este método: </span>
+                    <span className={diffClass} style={{fontWeight: 'normal'}}>{formatCurrency(diferenciaItemNetaConJustificaciones)}</span>
+                  </div>
+                );
+              })()}
               <div className="form-group">
                 <label htmlFor="itemJustTipo">Tipo de Justificación:</label>
                 <select
@@ -1667,6 +1800,7 @@ function RectificarPage() {
                 <h3 className="view-justifications-modal-title">
                     Justificaciones para: {justificationsToViewInfo.name}
                 </h3>
+                {/* La diferencia actual solo se muestra en el modal de ingreso/edición de justificación, no aquí. */}
                 {justificationsToViewInfo.justifications.length > 0 ? (
                     <div className="view-justifications-table-container">
                         <table className="view-justifications-table">
