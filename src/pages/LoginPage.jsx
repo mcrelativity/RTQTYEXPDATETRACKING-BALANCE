@@ -1,19 +1,38 @@
-// Página de inicio de sesión.
-// Permite a un usuario autenticarse con email y contraseña.
-// Muestra mensajes de error si las credenciales son incorrectas o hay problemas de autenticación.
-// Al iniciar sesión correctamente, redirige al usuario a la página principal (Home).
+/**
+ * Página de inicio de sesión.
+ * Estructura y propósito:
+ * - Permite a un usuario autenticarse con email y contraseña.
+ * - Muestra mensajes de error si las credenciales son incorrectas o hay problemas de autenticación.
+ * - Al iniciar sesión correctamente, redirige al usuario a la página principal (Home).
+ *
+ * No recibe props. Utiliza hooks de React Router y Firebase Auth.
+ *
+ * Renderiza:
+ * - Un formulario con campos de email y contraseña.
+ * - Mensajes de error y feedback.
+ */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from '../firebase/firebaseConfig';
 
+
 function LoginPage() {
-  // Estados para los campos del formulario y control de errores/carga
-  const [email, setEmail] = useState(''); // Email ingresado por el usuario
-  const [password, setPassword] = useState(''); // Contraseña ingresada
-  const [error, setError] = useState(''); // Mensaje de error a mostrar
-  const [loading, setLoading] = useState(false); // Estado de carga del botón
-  const navigate = useNavigate(); // Hook para navegación programática
+  /**
+   * Estados para los campos del formulario y control de errores/carga.
+   * email: string - Email ingresado por el usuario.
+   * password: string - Contraseña ingresada.
+   * error: string - Mensaje de error a mostrar.
+   * loading: boolean - Estado de carga del botón.
+   */
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  /**
+   * Hook para navegación programática.
+   */
+  const navigate = useNavigate();
 
   /**
    * Maneja el inicio de sesión del usuario.

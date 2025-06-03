@@ -1,6 +1,26 @@
+/**
+ * @file CuadraturasPage.jsx
+ * @description
+ * Página de Cuadraturas por Local. Permite a administradores y superadministradores visualizar, filtrar y navegar a la rectificación de sesiones POS agrupadas jerárquicamente por local, mes y día.
+ * Incluye lógica para cargar datos desde Odoo y Firebase, filtrar por estado, y gestionar la navegación a la página de rectificación.
+ * Cada función, hook, estado y estructura de datos está documentada en español para facilitar el mantenimiento y la comprensión del flujo.
+ *
+ * Estructura principal:
+ * - Carga y procesamiento de sesiones POS desde Odoo y solicitudes/borradores de rectificación desde Firebase.
+ * - Agrupación jerárquica de sesiones por local, mes y día.
+ * - Filtros por estado de rectificación (aprobada, rechazada, pendiente, borrador, sin rectificar).
+ * - Navegación a la página de rectificación según el estado y rol del usuario.
+ * - Renderizado visual con animaciones de carga y manejo de errores.
+ *
+ * @author (Documentación) Revisada por GitHub Copilot
+ */
 import './CuadraturasSkeletonLoader.css';
-// Skeleton Loader para la tabla de cuadraturas
-// Componente visual que muestra una animación de carga mientras se obtienen los datos de cuadraturas.
+/**
+ * Skeleton Loader para la tabla de cuadraturas.
+ * Componente visual que muestra una animación de carga mientras se obtienen los datos de cuadraturas.
+ * No recibe props.
+ * @returns {JSX.Element} Estructura visual de carga.
+ */
 function CuadraturasSkeletonLoader() {
   return (
     <div className="skeleton-loader">
@@ -19,13 +39,7 @@ function CuadraturasSkeletonLoader() {
     </div>
   );
 }
-// Página de Cuadraturas por Local
-// ---------------------------------------------
-// Este componente muestra la vista jerárquica de sesiones POS agrupadas por local, mes y día.
-// Permite a administradores y superadministradores visualizar, filtrar y navegar a la rectificación de cada sesión.
-// Incluye lógica para cargar datos desde Odoo y Firebase, filtrar por estado, y gestionar la navegación a la página de rectificación.
-// Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
-// Documentación detallada en español para cada función y bloque relevante.
+
 
 // Importaciones principales de React y librerías necesarias
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -34,12 +48,21 @@ import { useAuth } from '../context/AuthContext'; // Contexto de autenticación 
 import { database } from '../firebase/firebaseConfig'; // Configuración de Firebase
 import { ref, get } from "firebase/database"; // Métodos de Firebase para obtener datos
 
-// --- Variables de entorno para la configuración de la API de Odoo ---
+/**
+ * URL base y endpoint de la API de Odoo, y token de autenticación.
+ * Se obtienen desde variables de entorno definidas en Vite.
+ */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_ENDPOINT = `${API_BASE_URL}/odoo`;
 const BEARER_TOKEN = import.meta.env.VITE_API_BEARER_TOKEN;
 
-// --- Función para llamar a la API de Odoo ---
+/**
+ * Realiza una llamada POST a la API de Odoo con autenticación Bearer.
+ * @param {string} apiUrl - URL del endpoint de la API.
+ * @param {object} requestData - Objeto con los datos de la petición (modelo, campos, método, etc).
+ * @returns {Promise<object>} Respuesta JSON de la API.
+ * @throws {Error} Si la respuesta no es exitosa o hay error de red.
+ */
 async function callOdooApi(apiUrl, requestData) {
   const headers = {
     'Content-Type': 'application/json',
@@ -67,8 +90,12 @@ async function callOdooApi(apiUrl, requestData) {
   }
 }
 
-// --- Función para obtener las sesiones de punto de venta (POS) desde Odoo ---
-// Modificado: sin filtros de fecha, trae todas las sesiones que la API permita
+/**
+ * Obtiene las sesiones de punto de venta (POS) desde Odoo.
+ * No filtra por fecha, trae todas las sesiones permitidas por la API.
+ * @param {string} apiUrl - URL del endpoint de la API.
+ * @returns {Promise<Array>} Array de sesiones POS.
+ */
 async function fetchPosSessions(apiUrl) {
   const requestData = {
     model: "pos.session",
@@ -84,7 +111,11 @@ async function fetchPosSessions(apiUrl) {
   return await callOdooApi(apiUrl, requestData);
 }
 
-// --- Utilidad para formatear fechas y horas ---
+/**
+ * Formatea una cadena de fecha/hora a formato legible en español (Chile).
+ * @param {string} dateTimeString - Fecha/hora en formato ISO.
+ * @returns {string} Fecha/hora formateada o 'N/A'.
+ */
 const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return 'N/A';
     try {
@@ -93,7 +124,11 @@ const formatDateTime = (dateTimeString) => {
     } catch (e) { return dateTimeString; }
 };
 
-// --- Utilidad para formatear montos en moneda chilena ---
+/**
+ * Formatea un monto numérico a moneda chilena (CLP).
+ * @param {number|string} amount - Monto a formatear.
+ * @returns {string} Monto formateado o 'N/A'.
+ */
 const formatCurrency = (amount) => {
     if (amount === undefined || amount === null) return 'N/A';
     const numAmount = Number(amount);
@@ -101,9 +136,17 @@ const formatCurrency = (amount) => {
     return numAmount.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
 };
 
+/**
+ * Nombres de los meses en español para mostrar en la agrupación jerárquica.
+ * @type {string[]}
+ */
 const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-// --- Función para formatear el texto del estado de rectificación ---
+/**
+ * Formatea el texto del estado de rectificación para mostrarlo con mayúsculas y sin guiones bajos.
+ * @param {string} status - Estado de rectificación (ej: 'sin_rectificar').
+ * @returns {string} Estado formateado para visualización.
+ */
 const formatStatusText = (status) => {
   if (!status) return '';
   return status
@@ -113,13 +156,36 @@ const formatStatusText = (status) => {
     .join(' ');
 };
 
-// --- Componente principal de la página de Cuadraturas ---
-// Gestiona la carga, agrupación, filtrado y visualización de sesiones POS por local, mes y día.
-// Permite navegar a la página de rectificación según el estado y rol del usuario.
+/**
+ * Componente principal de la página de Cuadraturas.
+ * Gestiona la carga, agrupación, filtrado y visualización de sesiones POS por local, mes y día.
+ * Permite navegar a la página de rectificación según el estado y rol del usuario.
+ *
+ * Hooks de estado:
+ * - hierarchicalData: Array jerárquico de locales, meses, días y sesiones.
+ * - activeDayKey: Día actualmente expandido en la vista.
+ * - isLoading: Bandera de carga de datos.
+ * - apiError: Mensaje de error de API.
+ * - openStores: Estado de expansión de locales.
+ * - openMonths: Estado de expansión de meses.
+ * - filterStatus: Estado seleccionado en el filtro.
+ *
+ * @returns {JSX.Element} Página de cuadraturas con filtros y vista jerárquica.
+ */
 function CuadraturasPage() {
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth();
   
+  /**
+   * Estado principal de la página:
+   * @type {Array} hierarchicalData - Datos jerárquicos agrupados por local, mes y día.
+   * @type {string|null} activeDayKey - Día actualmente expandido.
+   * @type {boolean} isLoading - Bandera de carga de datos.
+   * @type {string|null} apiError - Mensaje de error de API.
+   * @type {Object} openStores - Estado de expansión de locales.
+   * @type {Object} openMonths - Estado de expansión de meses.
+   * @type {string} filterStatus - Estado seleccionado en el filtro.
+   */
   const [hierarchicalData, setHierarchicalData] = useState([]);
   const [activeDayKey, setActiveDayKey] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -130,7 +196,11 @@ function CuadraturasPage() {
   
   const calculatedPageMaxWidth = '1300px';
 
-  // --- Devuelve el color para las opciones del filtro de estado ---
+  /**
+   * Devuelve el color para las opciones del filtro de estado.
+   * @param {string} statusValue - Estado de rectificación.
+   * @returns {string} Color hexadecimal.
+   */
   const getOptionColor = (statusValue) => {
     switch (statusValue) {
         case 'aprobada': return '#198754';
@@ -142,7 +212,11 @@ function CuadraturasPage() {
     }
   };
 
-  // --- Carga y procesa los datos de cuadraturas ---
+  /**
+   * Carga y procesa los datos de cuadraturas desde Odoo y Firebase.
+   * Agrupa las sesiones por local, mes y día, y enriquece con estado de rectificación y borradores.
+   * @param {boolean} showLoadingIndicator - Si se debe mostrar el indicador de carga.
+   */
   const loadAndProcessCuadraturas = useCallback(async (showLoadingIndicator = true) => {
     if(showLoadingIndicator) setIsLoading(true);
     setApiError(null);
@@ -168,7 +242,13 @@ function CuadraturasPage() {
         }
       });
 
-      // Procesar cada sesión para enriquecerla con información de rectificación y si el admin actual tiene un borrador.
+      /**
+       * sessionsWithFullStatus: Array de sesiones POS enriquecidas con:
+       * - rectificationStatus: Estado de rectificación ('aprobada', 'pendiente', etc).
+       * - rectificationRequestId: ID de la solicitud de rectificación (si existe).
+       * - rectificationRequestDetails: Detalles de la solicitud (si existe).
+       * - hasDraft: Si existe un borrador colaborativo para la sesión.
+       */
       const sessionsWithFullStatusPromises = sessionsFromApi.map(async (session) => {
         const rectificationInfo = rectificationStatusBySessionId[session.id];
         let hasDraft = false; // Flag: ¿Existe un borrador colaborativo para esta sesión?
@@ -199,6 +279,20 @@ function CuadraturasPage() {
 
       const sessionsWithFullStatus = await Promise.all(sessionsWithFullStatusPromises);
       
+      /**
+       * Agrupa las sesiones por local, mes y día para la vista jerárquica.
+       * Estructura resultante:
+       * {
+       *   [storeName]: {
+       *     [monthKey]: {
+       *       monthDisplay: string,
+       *       days: {
+       *         [dayKey]: [Array de sesiones]
+       *       }
+       *     }
+       *   }
+       * }
+       */
       const sessionsByStoreMonthDay = sessionsWithFullStatus.reduce((acc, session) => {
         const storeName = Array.isArray(session.crm_team_id) && session.crm_team_id.length > 1
                             ? session.crm_team_id[1]
@@ -218,6 +312,24 @@ function CuadraturasPage() {
         return acc;
       }, {});
 
+      /**
+       * Convierte el objeto agrupado en un array jerárquico ordenado para el renderizado.
+       * Estructura final:
+       * [
+       *   {
+       *     storeName,
+       *     months: [
+       *       {
+       *         monthDisplay,
+       *         monthKey,
+       *         days: [
+       *           { dayDisplay, sessions: [...] }
+       *         ]
+       *       }
+       *     ]
+       *   }
+       * ]
+       */
       const finalGroupedData = Object.keys(sessionsByStoreMonthDay)
         .sort()
         .map(storeName => {
@@ -250,12 +362,18 @@ function CuadraturasPage() {
     }
   }, [currentUser, userRole]); 
 
-  // --- useEffect para cargar los datos al montar el componente ---
+  /**
+   * useEffect para cargar los datos al montar el componente.
+   */
   useEffect(() => {
     loadAndProcessCuadraturas();
   }, [loadAndProcessCuadraturas]);
 
-  // --- Memo para filtrar los datos jerárquicos según el estado seleccionado ---
+  /**
+   * Memoiza los datos jerárquicos filtrados según el estado seleccionado en el filtro.
+   * Si el filtro es 'borrador', muestra solo sesiones sin rectificar con borrador.
+   * @type {Array}
+   */
   const filteredHierarchicalData = useMemo(() => {
     if (!filterStatus) { 
         return hierarchicalData;
@@ -283,26 +401,44 @@ function CuadraturasPage() {
     }).filter(storeData => storeData.months.length > 0); 
   }, [hierarchicalData, filterStatus]);
 
-  // --- Maneja la apertura/cierre de la vista de un local ---
+  /**
+   * Maneja la apertura/cierre de la vista de un local.
+   * @param {Event} e - Evento de click.
+   * @param {string} storeName - Nombre del local.
+   */
   const handleStoreToggle = (e, storeName) => {
     e.preventDefault();
     setOpenStores(prev => ({ ...prev, [storeName]: !prev[storeName] }));
   };
 
-  // --- Maneja la apertura/cierre de la vista de un mes dentro de un local ---
+  /**
+   * Maneja la apertura/cierre de la vista de un mes dentro de un local.
+   * @param {Event} e - Evento de click.
+   * @param {string} storeName - Nombre del local.
+   * @param {string} monthKey - Clave del mes.
+   */
   const handleMonthToggle = (e, storeName, monthKey) => {
     e.preventDefault();
     const combinedKey = `${storeName}-${monthKey}`;
     setOpenMonths(prev => ({ ...prev, [combinedKey]: !prev[combinedKey] }));
   };
 
-  // --- Maneja la selección de un día específico para mostrar sus sesiones ---
+  /**
+   * Maneja la selección de un día específico para mostrar sus sesiones.
+   * @param {string} storeName - Nombre del local.
+   * @param {string} monthKey - Clave del mes.
+   * @param {string} dayDisplay - Día seleccionado.
+   */
   const handleDayClick = (storeName, monthKey, dayDisplay) => {
     const currentDayKey = `${storeName}-${monthKey}-${dayDisplay}`;
     setActiveDayKey(prevKey => prevKey === currentDayKey ? null : currentDayKey);
   };
   
-  // --- Navega a la página de Rectificación para la sesión seleccionada ---
+  /**
+   * Navega a la página de Rectificación para la sesión seleccionada.
+   * Determina el modo inicial según el estado y rol del usuario.
+   * @param {object} session - Sesión POS seleccionada.
+   */
   const handleRectifySession = (session) => {
     if (!session || session.id === undefined) {
       console.error("No se pudo cargar la información de la sesión para rectificar.");
@@ -337,7 +473,11 @@ function CuadraturasPage() {
     });
   };
   
-  // --- Devuelve el ícono visual para el estado de rectificación de la sesión ---
+  /**
+   * Devuelve el ícono visual para el estado de rectificación de la sesión.
+   * @param {string} status - Estado de rectificación.
+   * @returns {JSX.Element} Ícono correspondiente.
+   */
   const getStatusIcon = (status) => {
     switch (status) {
       case 'aprobada':
@@ -352,7 +492,11 @@ function CuadraturasPage() {
     }
   };
 
-  // --- Determina si el usuario puede interactuar con la rectificación de una sesión ---
+  /**
+   * Determina si el usuario puede interactuar con la rectificación de una sesión.
+   * @param {object} session - Sesión POS.
+   * @returns {boolean} True si el usuario puede interactuar.
+   */
   const canUserInteractWithRectification = (session) => {
     if (!currentUser) return false;
     // Superadmin puede interactuar con solicitudes enviadas o ver sesiones sin rectificar.
@@ -373,13 +517,23 @@ function CuadraturasPage() {
     return false;
   };
 
-  // --- Maneja el cambio de filtro de estado en la barra de filtros ---
+  /**
+   * Maneja el cambio de filtro de estado en la barra de filtros.
+   * @param {Event} event - Evento de cambio del select.
+   */
   const handleFilterStatusChange = (event) => {
     const newStatus = event.target.value;
     setFilterStatus(newStatus);
   };
 
   // --- Renderizado principal de la página de cuadraturas ---
+  /**
+   * Render principal de la página, incluye:
+   * - Barra de filtros por estado.
+   * - Vista jerárquica de locales, meses y días.
+   * - Tabla de sesiones con acciones según estado y rol.
+   * - Manejo de carga y errores.
+   */
   return (
     <div className="page-container" style={{ maxWidth: calculatedPageMaxWidth }}>
       <div className="cuadraturas-header-container">

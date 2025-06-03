@@ -1,3 +1,11 @@
+/*
+  Archivo: index.css
+  Descripción: Estilos globales y utilidades para toda la aplicación GalenoTest.
+  Incluye reglas de responsividad, estilos de botones, formularios, tablas, contenedores y utilidades visuales.
+  Todos los comentarios y descripciones están en español para facilitar el mantenimiento.
+  @author (Documentación) Revisada por GitHub Copilot
+*/
+
 /* Alerta visual para borrador cargado */
 .draft-alert-loaded {
   display: flex;

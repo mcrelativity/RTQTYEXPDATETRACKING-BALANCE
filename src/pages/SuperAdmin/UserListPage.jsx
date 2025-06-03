@@ -1,12 +1,28 @@
-// Página para listar y gestionar usuarios (solo superadmin).
-// Muestra la lista de usuarios, permite crear y editar usuarios.
-// Carga los usuarios desde Firebase y los ordena por local y email.
+/**
+ * @file UserListPage.jsx
+ * @description
+ * Página para listar y gestionar usuarios (solo superadmin).
+ * Muestra la lista de usuarios, permite crear y editar usuarios.
+ * Carga los usuarios desde Firebase y los ordena por local y email.
+ *
+ * Estructura principal:
+ * - Carga y ordena usuarios desde Firebase.
+ * - Permite navegación a creación y edición de usuarios.
+ * - Renderiza tabla con usuarios y estados de carga/error.
+ *
+ * @author (Documentación) Revisada por GitHub Copilot
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { database } from '../../firebase/firebaseConfig';
 import { ref, get, query, orderByChild } from 'firebase/database';
 
 
+/**
+ * Componente de página para listar y gestionar usuarios.
+ * Solo accesible para superadministradores.
+ * @returns {JSX.Element} Vista de gestión de usuarios.
+ */
 function UserListPage() {
     // Estados para la lista de usuarios, carga y errores
     const navigate = useNavigate();

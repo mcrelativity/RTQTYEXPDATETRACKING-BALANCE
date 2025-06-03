@@ -1,7 +1,18 @@
-// Página para editar un usuario existente (solo superadmin).
-// Permite cambiar el rol y el local asignado de un usuario.
-// Carga los datos del usuario y la lista de locales desde Firebase.
-// Guarda los cambios en la base de datos.
+/**
+ * @file UserEditPage.jsx
+ * @description
+ * Página para editar un usuario existente (solo superadmin).
+ * Permite cambiar el rol y el local asignado de un usuario.
+ * Carga los datos del usuario y la lista de locales desde Firebase.
+ * Guarda los cambios en la base de datos.
+ *
+ * Estructura principal:
+ * - Carga datos del usuario y locales al montar.
+ * - Permite modificar rol y local asignado.
+ * - Guarda los cambios en Firebase.
+ *
+ * @author (Documentación revisada) GitHub Copilot
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ref, get, update } from 'firebase/database';
@@ -9,6 +20,11 @@ import { database } from '../../firebase/firebaseConfig';
 
 // import { auth, sendPasswordResetEmail } from '../../firebase/firebaseConfig';
 
+/**
+ * Componente de página para editar un usuario existente.
+ * Solo accesible para superadministradores.
+ * @returns {JSX.Element} Vista de edición de usuario.
+ */
 function UserEditPage() {
     // Obtiene el ID del usuario desde la URL y prepara estados
     const { userId } = useParams();

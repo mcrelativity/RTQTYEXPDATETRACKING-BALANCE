@@ -1,22 +1,42 @@
-// Página de registro de usuario. Esta Página no está en uso!!!!!!!!!!!!!
-// Permite a un nuevo usuario crear una cuenta con email y contraseña.
-// Valida que las contraseñas coincidan y maneja errores comunes de registro.
-// Al registrarse exitosamente, guarda el usuario en Firebase y lo redirige al login.
-// Documentación detallada en español para cada función y bloque relevante.
+/**
+ * Página de registro de usuario (actualmente no está en uso).
+ * Estructura y propósito:
+ * - Permite a un nuevo usuario crear una cuenta con email y contraseña.
+ * - Valida que las contraseñas coincidan y maneja errores comunes de registro.
+ * - Al registrarse exitosamente, guarda el usuario en Firebase y lo redirige al login.
+ *
+ * No recibe props. Utiliza hooks de React Router y Firebase Auth/Database.
+ *
+ * Renderiza:
+ * - Un formulario con campos de email, contraseña y confirmación.
+ * - Mensajes de error y feedback.
+ * - Un enlace para ir al login si ya tiene cuenta.
+ */
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, set } from "firebase/database";
 import { auth, database } from '../firebase/firebaseConfig';
 
+
 function SignUpPage() {
-  // Estados para los campos del formulario y control de errores/carga
-  const [email, setEmail] = useState(''); // Email ingresado por el usuario
-  const [password, setPassword] = useState(''); // Contraseña ingresada
-  const [confirmPassword, setConfirmPassword] = useState(''); // Confirmación de contraseña
-  const [error, setError] = useState(''); // Mensaje de error a mostrar
-  const [loading, setLoading] = useState(false); // Estado de carga del botón
-  const navigate = useNavigate(); // Hook para navegación programática
+  /**
+   * Estados para los campos del formulario y control de errores/carga.
+   * email: string - Email ingresado por el usuario.
+   * password: string - Contraseña ingresada.
+   * confirmPassword: string - Confirmación de contraseña.
+   * error: string - Mensaje de error a mostrar.
+   * loading: boolean - Estado de carga del botón.
+   */
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  /**
+   * Hook para navegación programática.
+   */
+  const navigate = useNavigate();
 
   /**
    * Maneja el registro del usuario.

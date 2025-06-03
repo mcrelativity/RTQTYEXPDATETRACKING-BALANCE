@@ -1,7 +1,18 @@
-// Página para crear un nuevo usuario (solo superadmin).
-// Permite ingresar email, contraseña, rol y local asignado.
-// Guarda el usuario en Firebase Auth y en la base de datos.
-// Al crear, cierra la sesión por seguridad y redirige a la lista de usuarios.
+/**
+ * @file UserCreatePage.jsx
+ * @description
+ * Página para crear un nuevo usuario (solo superadmin).
+ * Permite ingresar email, contraseña, rol y local asignado.
+ * Guarda el usuario en Firebase Auth y en la base de datos.
+ * Al crear, cierra la sesión por seguridad y redirige a la lista de usuarios.
+ *
+ * Estructura principal:
+ * - Carga la lista de locales desde Firebase.
+ * - Permite ingresar datos y crear usuario en Auth y RTDB.
+ * - Redirige a la lista de usuarios tras crear.
+ *
+ * @author (Documentación) Revisada por GitHub Copilot
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -9,6 +20,11 @@ import { ref, set, get } from 'firebase/database';
 import { auth, database } from '../../firebase/firebaseConfig';
 
 
+/**
+ * Componente de página para crear un nuevo usuario.
+ * Solo accesible para superadministradores.
+ * @returns {JSX.Element} Vista de creación de usuario.
+ */
 function UserCreatePage() {
     // Estados para los campos del formulario y control de errores/carga
     const navigate = useNavigate();

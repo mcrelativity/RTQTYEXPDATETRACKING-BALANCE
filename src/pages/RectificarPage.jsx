@@ -1,12 +1,31 @@
-// Página de Rectificación de Caja
-// ---------------------------------------------
-// Este componente permite a los administradores y superadministradores revisar, justificar y rectificar diferencias de caja en sesiones POS.
-// Incluye lógica para cargar datos desde Odoo y Firebase, gestionar formularios, justificaciones, gastos, boletas y flujos de aprobación.
-// Cada función, hook y bloque relevante está documentado para facilitar el mantenimiento y la comprensión del flujo.
-// Documentación detallada en español para cada función y bloque relevante.
+
+/**
+ * @file RectificarPage.jsx
+ * @description
+ * Página de Rectificación de Caja. Permite a administradores y superadministradores revisar, justificar y rectificar diferencias de caja en sesiones POS.
+ * Incluye lógica para cargar datos desde Odoo y Firebase, gestionar formularios, justificaciones, gastos, boletas y flujos de aprobación.
+ * Cada función, hook, estado y estructura de datos está documentada en español para facilitar el mantenimiento y la comprensión del flujo.
+ *
+ * Estructura principal:
+ * - Carga y procesamiento de datos de sesión POS y solicitudes/borradores de rectificación desde Firebase y Odoo.
+ * - Formulario atómico para ingresar montos físicos, justificaciones, gastos y boletas.
+ * - Flujos de aprobación/rechazo para superadministradores.
+ * - Renderizado condicional según rol y estado de la solicitud.
+ * - Manejo de errores, notificaciones y animaciones de confirmación.
+ *
+ * @author (Documentación) Revisada por GitHub Copilot
+ */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Modal de error elegante para mostrar mensajes de validación o errores
+/**
+ * Modal de error elegante para mostrar mensajes de validación o errores.
+ * @param {object} props
+ * @param {boolean} props.open - Si el modal está abierto.
+ * @param {string} props.message - Mensaje de error a mostrar.
+ * @param {function} props.onClose - Función para cerrar el modal.
+ * @returns {JSX.Element|null} Modal de error.
+ */
 function ErrorModal({ open, message, onClose }) {
   if (!open) return null;
   return (
@@ -41,6 +60,14 @@ import './RectificarPage.css'; // Import the new CSS file
 // --- Componentes auxiliares ---
 
 // Animación de confirmación o error tras enviar solicitud
+/**
+ * Animación de confirmación o error tras enviar solicitud.
+ * @param {object} props
+ * @param {boolean} props.success - Si la operación fue exitosa.
+ * @param {string} props.message - Mensaje principal.
+ * @param {string} [props.desc] - Descripción adicional.
+ * @returns {JSX.Element} Animación visual.
+ */
 function RectificarConfirmAnimation({ success, message, desc }) {
   return (
     <div className="rectificar-confirm-anim">
@@ -52,6 +79,11 @@ function RectificarConfirmAnimation({ success, message, desc }) {
 }
 
 // Modern Skeleton Loader con estructura similar a la página de rectificación
+/**
+ * Skeleton Loader visual para la página de rectificación.
+ * Muestra una animación de carga con estructura similar a la UI real.
+ * @returns {JSX.Element} Loader visual.
+ */
 function RectificarSkeletonLoader() {
   return (
     <div className="modern-skeleton-loader rectificar-page-container"> {/* Added rectificar-page-container for consistent padding */} 
@@ -149,9 +181,13 @@ const DEFAULT_PAYMENT_METHODS_CONFIG = [
   { id: 'planilla', odoo_names: ['Planilla'], display_name: 'Planilla'},
 ];
 
-// --- Función asíncrona para realizar llamadas a la API de Odoo ---
-// Maneja la construcción de la petición POST, incluyendo cabeceras y cuerpo.
-// También gestiona errores básicos de respuesta de la API.
+/**
+ * Realiza una llamada POST a la API de Odoo con autenticación Bearer.
+ * @param {string} apiUrl - URL del endpoint de la API.
+ * @param {object} requestData - Objeto con los datos de la petición (modelo, campos, método, etc).
+ * @returns {Promise<object>} Respuesta JSON de la API.
+ * @throws {Error} Si la respuesta no es exitosa o hay error de red.
+ */
 async function callOdooApi(apiUrl, requestData) {
   const headers = { 'Content-Type': 'application/json', Authorization: `bearer ${BEARER_TOKEN}` };
   const requestOptions = { method: 'POST', headers: headers, body: JSON.stringify(requestData) };
@@ -166,8 +202,13 @@ async function callOdooApi(apiUrl, requestData) {
   } catch (error) { console.error("Error calling Odoo API:", error); throw error; }
 }
 
-// --- Función para obtener los datos de pagos de una sesión específica desde Odoo ---
-// Utiliza callOdooApi para realizar la petición.
+/**
+ * Obtiene los datos de pagos de una sesión específica desde Odoo.
+ * Utiliza callOdooApi para realizar la petición.
+ * @param {string} apiUrl - URL del endpoint de la API.
+ * @param {number|string} sessionId - ID de la sesión POS.
+ * @returns {Promise<Array>} Array de pagos agrupados por método.
+ */
 async function fetchSessionPayments(apiUrl, sessionId) {
   if (sessionId === null || sessionId === undefined) return []; // Retorna array vacío si no hay sessionId.
   const requestData = {
@@ -178,23 +219,34 @@ async function fetchSessionPayments(apiUrl, sessionId) {
   return await callOdooApi(apiUrl, requestData);
 }
 
-// --- Función para formatear una cadena de fecha/hora a un formato legible local (es-CL) ---
+/**
+ * Formatea una cadena de fecha/hora a formato legible en español (Chile).
+ * @param {string} dateTimeString - Fecha/hora en formato ISO.
+ * @returns {string} Fecha/hora formateada o 'N/A'.
+ */
 const formatDateTime = (dateTimeString) => {
   if (!dateTimeString) return 'N/A';
   try { const date = new Date(dateTimeString); return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }); }
   catch (e) { return dateTimeString; }
 };
 
-// --- Función para formatear un número como moneda chilena (CLP) ---
+/**
+ * Formatea un número como moneda chilena (CLP).
+ * @param {number|string} amount - Monto a formatear.
+ * @returns {string} Monto formateado o 'N/A'.
+ */
 const formatCurrency = (amount) => {
   const numAmount = parseFloat(String(amount).replace(/\./g, '').replace(/,/g, '.'));
   if (isNaN(numAmount)) return 'N/A';
   return numAmount.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-// --- Función para parsear y limpiar un valor de input de monto, permitiendo un signo negativo al inicio ---
-// Elimina puntos y cualquier caracter no numérico (excepto el signo inicial).
-// Solo permite números enteros positivos, sin signo negativo
+/**
+ * Parsea y limpia un valor de input de monto, permitiendo solo números enteros positivos.
+ * Elimina puntos y cualquier caracter no numérico.
+ * @param {string|number} value - Valor a limpiar.
+ * @returns {string} Valor numérico limpio como string.
+ */
 const parseInputAmount = (value) => {
   if (value === null || value === undefined) return '';
   let stringValue = String(value).trim();
@@ -210,8 +262,12 @@ const parseInputAmount = (value) => {
   return number.toString();
 };
 
-// --- Función recursiva para sanitizar un objeto antes de guardarlo en Firebase ---
-// Principalmente convierte valores 'undefined' a 'null', ya que Firebase no maneja bien 'undefined'.
+/**
+ * Función recursiva para sanitizar un objeto antes de guardarlo en Firebase.
+ * Convierte valores 'undefined' a 'null', ya que Firebase no maneja bien 'undefined'.
+ * @param {object} dataObject - Objeto a sanitizar.
+ * @returns {object} Objeto limpio para Firebase.
+ */
 function sanitizeForFirebase(dataObject) {
   if (dataObject === null || typeof dataObject !== 'object') { return dataObject === undefined ? null : dataObject; }
   if (Array.isArray(dataObject)) { return dataObject.map(item => sanitizeForFirebase(item)); }
@@ -232,17 +288,43 @@ function sanitizeForFirebase(dataObject) {
 // Incluye manejo de estados, hooks de ciclo de vida, lógica de negocio y renderizado condicional.
 
 
+/**
+ * Componente principal de la página de Rectificación.
+ * Gestiona la lógica de visualización, edición, justificación y envío de solicitudes de rectificación de caja.
+ * Incluye manejo de estados, hooks de ciclo de vida, lógica de negocio y renderizado condicional.
+ *
+ * Hooks de estado principales:
+ * - formState: Estado maestro atómico con todos los datos del formulario y sesión.
+ * - loadingState: Estado de carga y flags de UI.
+ * - draftState: Estado de borrador colaborativo.
+ * - error, success, isSubmitting, isSavingDraft, etc: Estados auxiliares de UI.
+ *
+ * @returns {JSX.Element} Página de rectificación con formularios, justificaciones y flujos de aprobación.
+ */
 function RectificarPage() {
-  // Estado para el modal de error elegante
+  /**
+   * Estado para el modal de error elegante.
+   * @type {{open: boolean, message: string}}
+   */
   const [errorModal, setErrorModal] = useState({ open: false, message: '' });
   // --- Hooks de React Router y Auth ---
+  /**
+   * Hooks de navegación y autenticación.
+   * @type {function} navigate - Navegación programática.
+   * @type {object} location - Ubicación y estado de navegación.
+   * @type {string} sessionId - ID de la sesión POS desde la URL.
+   * @type {object} currentUser - Usuario autenticado.
+   * @type {string} userRole - Rol del usuario ('admin' o 'superadmin').
+   */
   const navigate = useNavigate();
   const location = useLocation();
   const { sessionId } = useParams();
   const { currentUser, userRole } = useAuth();
 
-  // --- Robustez: Si no viene existingRequestId en location.state, intentar buscarlo automáticamente ---
-  // Solo admins: buscar la solicitud de rectificación asociada a la sesión si no viene en el estado
+  /**
+   * Robustez: Si no viene existingRequestId en location.state, buscarlo automáticamente en Firebase (solo para admins).
+   * @type {[string|null, function]} autoRequestId - ID de solicitud encontrado automáticamente.
+   */
   const [autoRequestId, setAutoRequestId] = useState(null);
   useEffect(() => {
     async function fetchRequestIdIfNeeded() {
@@ -261,22 +343,46 @@ function RectificarPage() {
   }, [location.state, sessionId, userRole]);
 
   // --- Estado maestro atómico ---
+  /**
+   * Estado maestro atómico de la página.
+   * Contiene todos los datos de la sesión, formulario, justificaciones, gastos y boletas.
+   * @type {[object, function]} formState - Estado y setter del formulario principal.
+   */
   const [formState, setFormState] = useState({
-    sessionData: null,
-    pageMode: 'view_only',
-    paymentDetails: [],
-    existingRectification: null,
+    sessionData: null, // Datos de la sesión POS actual
+    pageMode: 'view_only', // Modo de la página ('create', 'view_only', 'review')
+    paymentDetails: [], // Detalles de montos por método de pago
+    existingRectification: null, // Solicitud de rectificación existente (si aplica)
     mainFormData: {
-      nuevoSaldoFinalRealEfectivo: '',
-      superAdminMotivoDecision: ''
+      nuevoSaldoFinalRealEfectivo: '', // Monto físico efectivo ingresado
+      superAdminMotivoDecision: '' // Comentario de superadmin
     },
-    itemJustifications: {},
-    gastosRendidos: [],
-    boletasPendientes: [],
-    gastosSistemaAPI: 0
+    itemJustifications: {}, // Justificaciones por método
+    gastosRendidos: [], // Gastos rendidos
+    boletasPendientes: [], // Boletas ingresadas
+    gastosSistemaAPI: 0 // Gastos del sistema desde API
   });
 
   // --- Estados para la UI: carga, errores y feedback unificado ---
+  /**
+   * Estados auxiliares de UI y formularios:
+   * @type {boolean} isLoading - Si la página está cargando datos.
+   * @type {string} error - Mensaje de error global.
+   * @type {string} success - Mensaje de éxito global.
+   * @type {boolean} showConfirmAnim - Si se muestra la animación de confirmación.
+   * @type {boolean} confirmAnimSuccess - Resultado de la animación de confirmación.
+   * @type {string} confirmAnimMsg - Mensaje principal de la animación.
+   * @type {string} confirmAnimDesc - Descripción adicional de la animación.
+   * @type {object} tempNotification - Notificación temporal (borrador, éxito, etc).
+   * @type {boolean} isSubmitting - Si se está enviando la solicitud.
+   * @type {boolean} isSavingDraft - Si se está guardando el borrador.
+   * @type {boolean} showConfirmModal - Si se muestra el modal de confirmación.
+   * @type {boolean} isItemJustificationModalOpen - Si el modal de justificación está abierto.
+   * @type {object|null} currentItemForJustification - Ítem actual para justificar.
+   * @type {object} itemJustificationForm - Formulario de justificación de ítem.
+   * @type {boolean} isGastoModalOpen - Si el modal de gasto está abierto.
+   * @type {object} gastoForm - Formulario de gasto.
+   */
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -298,6 +404,17 @@ function RectificarPage() {
   const [itemJustificationForm, setItemJustificationForm] = useState({ monto: '', motivo: '', tipo: 'faltante' });
   const [isGastoModalOpen, setIsGastoModalOpen] = useState(false);
   const [gastoForm, setGastoForm] = useState({ monto: '', comprobante: '', motivo: '' });
+  /**
+   * Estados auxiliares para modales, borradores y carga:
+   * @type {boolean} isBoletaModalOpen - Si el modal de boleta está abierto.
+   * @type {object} boletaForm - Formulario de boleta.
+   * @type {boolean} isViewJustificationsModalOpen - Si el modal de ver justificaciones está abierto.
+   * @type {object} justificationsToViewInfo - Info de justificaciones a mostrar.
+   * @type {object} draftState - Estado del borrador colaborativo.
+   * @type {object} loadingState - Estado de carga y flags de UI.
+   * @type {object} hasDraftBeenProcessedRef - Ref para evitar reprocesar borrador.
+   * @type {object} sessionIdRef - Ref para el ID de sesión.
+   */
   const [isBoletaModalOpen, setIsBoletaModalOpen] = useState(false);
   const [boletaForm, setBoletaForm] = useState({ monto: '', numeroBoleta: '', estadoBoleta: 'Pendiente' });
   const [isViewJustificationsModalOpen, setIsViewJustificationsModalOpen] = useState(false);

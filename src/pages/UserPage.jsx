@@ -1,13 +1,32 @@
-// Página de perfil de usuario. Esta página no esta en uso por ahora!!!1
-// Muestra la información básica del usuario autenticado y permite volver a la página principal.
+/**
+ * Página de perfil de usuario (actualmente no está en uso).
+ * Estructura y propósito:
+ * - Muestra la información básica del usuario autenticado (email, rol, local asignado).
+ * - Permite volver a la página principal mediante un botón.
+ * - Utiliza el contexto global de autenticación para obtener los datos del usuario.
+ *
+ * No recibe props. No realiza llamadas externas ni mutaciones de datos.
+ *
+ * Renderiza:
+ * - Un contenedor principal con el título "Perfil de Usuario".
+ * - Si hay datos de usuario, muestra email, rol y local asignado.
+ * - Si no hay datos, muestra un mensaje de error.
+ * - Un botón para volver a Home.
+ */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+
 function UserPage() {
-  // Obtiene los datos del usuario autenticado desde el contexto global
+  /**
+   * Obtiene los datos del usuario autenticado desde el contexto global.
+   * userData: { email: string, role: string, storeName?: string }
+   */
   const { userData } = useAuth(); 
-  // Hook para navegación programática entre páginas
+  /**
+   * Hook para navegación programática entre páginas.
+   */
   const navigate = useNavigate();
 
   return (

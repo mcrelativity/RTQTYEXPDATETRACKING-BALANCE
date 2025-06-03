@@ -1,19 +1,39 @@
-// Página principal de bienvenida.
-// Permite al usuario navegar a las distintas funcionalidades según su rol (usuario, admin, superadmin).
+/**
+ * Página principal de bienvenida.
+ * Estructura y propósito:
+ * - Permite al usuario navegar a las distintas funcionalidades según su rol (usuario, admin, superadmin).
+ * - Muestra botones de navegación condicionales según el rol del usuario autenticado.
+ *
+ * No recibe props. Utiliza hooks de React Router y el contexto de autenticación.
+ *
+ * Renderiza:
+ * - Un contenedor principal con el título "Bienvenido".
+ * - Botones para navegar a Ingreso de Stock, Inventario, Cuadraturas y Panel SuperAdmin (según rol).
+ */
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+
 function HomePage() {
-  // Obtiene los datos del usuario autenticado
+  /**
+   * Obtiene los datos del usuario autenticado.
+   * userData: { email: string, role: string, storeName?: string }
+   */
   const { userData } = useAuth();
-  // Hook para navegación programática
+  /**
+   * Hook para navegación programática.
+   */
   const navigate = useNavigate();
 
-  // Determina si el usuario es admin o superadmin
+  /**
+   * Determina si el usuario es admin o superadmin.
+   */
   const isAdminOrSuperAdmin = userData?.role === 'admin' || userData?.role === 'superadmin';
 
-  // Ajusta el ancho máximo de la página según el rol
+  /**
+   * Ajusta el ancho máximo de la página según el rol.
+   */
   const calculatedMaxWidth = isAdminOrSuperAdmin ? '600px' : '450px';
 
   return (

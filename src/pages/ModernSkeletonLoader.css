@@ -1,24 +1,30 @@
-/* Modern Skeleton Loader con formas que simulan la estructura de la página */
+/*
+  Loader esqueleto moderno con formas que simulan la estructura de la página.
+  Proporciona animaciones de carga para mejorar la experiencia de usuario mientras se cargan los datos.
+  @author (Documentación) Revisada por GitHub Copilot
+*/
+/* Loader esqueleto moderno con formas que simulan la estructura de la página */
+/* Contenedor principal del loader esqueleto moderno */
 .modern-skeleton-loader {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Adjusted gap */
-  /* margin: 36px 0; */ /* Removed default margin, using rectificar-page-container for padding */
+  gap: 20px; /* Espaciado entre elementos */
+  /* margin: 36px 0; */ /* Margen eliminado, se usa el padding del contenedor principal */
   width: 100%;
-  /* align-items: center; */ /* Align items to stretch if needed */
+  /* align-items: center; */ /* Los ítems se estiran por defecto */
 }
 
-/* General skeleton card styling */
+/* Tarjeta esqueleto general */
 .modern-skeleton-card {
-  background-color: #f8f9fa; /* Light background for cards */
+  background-color: #f8f9fa; /* Fondo claro para las tarjetas */
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-  position: relative; /* For absolute positioning of elements like buttons */
-  overflow: hidden; /* To make wave animation contained */
+  position: relative; /* Para posicionar elementos absolutos como botones */
+  overflow: hidden; /* Para contener la animación de onda */
 }
 
-/* Common skeleton element with wave animation */
+/* Elemento esqueleto común con animación de onda */
 .modern-skeleton-element {
   background: linear-gradient(90deg, #e9ecef 25%, #dee2e6 50%, #e9ecef 75%);
   background-size: 200% 100%;
@@ -26,16 +32,16 @@
   border-radius: 6px;
 }
 
-/* Specific skeleton elements */
+/* Elementos esqueleto específicos */
 .modern-skeleton-title {
-  /* Inherits from modern-skeleton-element */
+  /* Hereda de modern-skeleton-element */
 }
 .modern-skeleton-button {
-  /* Inherits from modern-skeleton-element */
+  /* Hereda de modern-skeleton-element */
   border-radius: 4px;
 }
 .modern-skeleton-subtitle {
-  /* Inherits from modern-skeleton-element */
+  /* Hereda de modern-skeleton-element */
 }
 .modern-skeleton-text-line {
   /* Inherits from modern-skeleton-element */

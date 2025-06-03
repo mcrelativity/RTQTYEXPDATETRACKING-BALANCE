@@ -1,10 +1,23 @@
-// Página principal del panel Superadministrador.
-// Permite acceder a la gestión de usuarios y al inventario global.
-// Solo accesible para usuarios con rol superadmin.
+/**
+ * @file SuperAdminPage.jsx
+ * @description
+ * Página principal del panel Superadministrador.
+ * Permite acceder a la gestión de usuarios y al inventario global.
+ * Solo accesible para usuarios con rol superadmin.
+ *
+ * Estructura principal:
+ * - Renderiza botones de acceso a gestión de usuarios, inventario y volver a inicio.
+ *
+ * @author (Documentación) Revisada por GitHub Copilot
+ */
 import React from 'react';
 import { Link } from 'react-router-dom';
 
 // Renderiza botones de acceso a las funciones de superadmin
+/**
+ * Componente principal del panel Superadministrador.
+ * @returns {JSX.Element} Vista de acceso a funciones de superadmin.
+ */
 function SuperAdminPage() {
     return (
         <div className="page-container" style={{maxWidth: '600px'}}>

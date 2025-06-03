@@ -1,3 +1,11 @@
+/*
+  Archivo: App.css
+  Descripción: Estilos base para la estructura principal de la aplicación React.
+  Incluye reglas para el contenedor raíz, logotipos, tarjetas y animaciones.
+  Todos los comentarios están en español para facilitar el mantenimiento.
+  @author (Documentación revisada) GitHub Copilot
+*/
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -5,6 +13,8 @@
   text-align: center;
 }
 
+
+/* Estilos para el logotipo principal */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -18,6 +28,8 @@
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+
+/* Animación de giro para el logo de React */
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
@@ -27,16 +39,20 @@
   }
 }
 
+
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
 }
 
+
+/* Estilos para tarjetas de contenido */
 .card {
   padding: 2em;
 }
 
+/* Estilo para el texto de documentación */
 .read-the-docs {
   color: #888;
 }

@@ -1,3 +1,8 @@
+/*
+  Animación de confirmación para la página de Rectificar.
+  Muestra mensajes de éxito o error con animaciones visuales.
+  @author (Documentación) Revisada por GitHub Copilot
+*/
 .rectificar-confirm-anim {
   display: flex;
   flex-direction: column;
@@ -7,17 +12,20 @@
   min-height: 180px;
   animation: fadeInScale 0.7s cubic-bezier(.4,1.4,.6,1) both;
 }
+/* Ícono animado de confirmación */
 .rectificar-confirm-anim .icon {
   font-size: 3.5em;
   margin-bottom: 18px;
   animation: popIn 0.5s cubic-bezier(.4,1.4,.6,1);
 }
+/* Colores para estados de éxito y error */
 .rectificar-confirm-anim .success {
   color: #2ecc71;
 }
 .rectificar-confirm-anim .error {
   color: #e74c3c;
 }
+/* Mensaje principal de confirmación */
 .rectificar-confirm-anim .message {
   font-size: 1.2em;
   font-weight: 600;
@@ -25,15 +33,18 @@
   margin-bottom: 8px;
   text-align: center;
 }
+/* Descripción secundaria */
 .rectificar-confirm-anim .desc {
   font-size: 1em;
   color: #555;
   text-align: center;
 }
+/* Animación de aparición con escala */
 @keyframes fadeInScale {
   0% { opacity: 0; transform: scale(0.85); }
   100% { opacity: 1; transform: scale(1); }
 }
+/* Animación de "pop" para el ícono */
 @keyframes popIn {
   0% { transform: scale(0.5); opacity: 0; }
   80% { transform: scale(1.15); opacity: 1; }
