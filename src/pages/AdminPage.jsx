@@ -331,13 +331,13 @@ function AdminPage() {
     if (error) return <div className="page-container" style={{marginTop: '20px'}}><p className="error-message">{error}</p>{(userData?.role === 'admin' || userData?.role === 'superadmin') && (<div className="button-group" style={{justifyContent: 'center'}}><button className='secondary' onClick={()=>navigate('/home')}>Volver</button></div>)}</div>;
 
     const hasResultsToDisplay = consolidatedViewData && Object.keys(consolidatedViewData).length > 0;
-
+    //Estructura de la pagina de inventario, es solo html donde organizo y diseño la pagina y tambien donde agrego el filtro de mes y año + la barra de búsqueda
     return (
         <div className="page-container" style={{marginTop: '20px', maxWidth: '1050px'}}>
             <h1>{pageTitle}</h1>
             <p>Usuario: {userData?.email} (Rol: {userData?.role})</p>
             {userData?.storeName && <p>Local Asignado (para ingresos): {userData.storeName}</p>}
-
+            {/* Filtros de mes y año*/}
             <div style={{ marginBottom: '10px', marginTop:'15px', textAlign: 'right' }}>
                  <span style={{fontWeight: 'bold', fontSize: '0.9em', marginRight:'5px', color: '#555'}}>Ver Mes:</span>
                  <select id="month-filter" value={selectedMonth} onChange={handleMonthChange} className="compact-select">
@@ -347,7 +347,7 @@ function AdminPage() {
                       {yearOptions.map(year => ( <option key={year} value={year}>{year}</option> ))}
                  </select>
             </div>
-
+            {/* Barra de búsqueda */} 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 15px 0' }}>
                  <input
                      id="search-input" ref={searchInputRef} autoFocus type="text"
