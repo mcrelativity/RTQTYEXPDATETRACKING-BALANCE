@@ -147,7 +147,7 @@ function AdminPage() {
         return dataByStore;
     }, [searchedEntries, productsData]);
 
-    //Preparar para excel la data
+    //Preparar para excel la data, se obtiene toda la información de los productos de la BD y se consolida por local
     const prepareConsolidatedDataForStoreSheet = (storeEntries) => {
         const storeConsolidated = {};
         storeEntries.forEach(entry => {
@@ -168,7 +168,8 @@ function AdminPage() {
             "Cantidad": item.totalQuantity
         })).sort((a, b) => a.Nombre.localeCompare(b.Nombre));
     };
-
+    // Función para descargar el excel de vencimientos del mes por local, asigna a cada local una hoja
+    // Se procesa la data ya obtenida y se organiza por local, luego se genera un archivo Excel con una hoja por local, ademas se le da formato/tamaño a las celdas
     const downloadExcelPerStore = (entriesToProcess, baseFileName) => {
         if (entriesToProcess.length === 0) { alert("No hay datos visibles para descargar."); return; }
         const dataByStoreId = {};
@@ -214,7 +215,7 @@ function AdminPage() {
              XLSX.writeFile(wb, fileName);
         } catch (exportError) { console.error("Error generating multi-sheet Excel:", exportError); alert("Error al generar el archivo Excel por local."); }
     };
-
+    // Funcion para descargar excel de todo el inventario en general + rops
      const downloadSingleSheetExcel = (data, sheetName, fileName, columnWidths) => {
          if (!data || data.length === 0) { alert("No hay datos para generar el reporte."); return; }
          try {
@@ -241,7 +242,7 @@ function AdminPage() {
      };
 
     const handleDownloadVisibleByStore = () => downloadExcelPerStore(searchedEntries, `Vencimientos_`);
-
+     
     const handleDownloadConsolidatedTotalAction = () => {
         if (searchedEntries.length === 0) { alert("No hay registros visibles para generar totales."); return; }
         if (!ropsData || !productsData || !storesData) { alert("Datos ROP, de Productos o de Tiendas no disponibles."); return; }
@@ -277,7 +278,7 @@ function AdminPage() {
                 .map(([storeId, qty]) => `${storesData[storeId]?.name || storeId}: ${qty} un`)
                 .sort()
                 .join(', ');
-
+            // Bases del excel y luego debajo se calculan y agregan los rops por local a cada producto
             const baseRow = {
                 "Cod Ref": item.productId,
                 "Nombre Producto": item.productName,
