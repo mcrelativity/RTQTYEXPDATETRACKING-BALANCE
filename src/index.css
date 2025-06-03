@@ -1772,21 +1772,30 @@ a { text-decoration: none; color: inherit; }
     }
     .excel-style-table td[data-label="Justificaciones"] .justification-entry > span {
         line-height: 1.3; /* Ensure consistent line height for wrapped text */
-    }
-
-
-    /* --- "INGRESAR BOLETA" / "AGREGAR GASTO" BUTTON --- */
+    }    /* --- "INGRESAR BOLETA" / "AGREGAR GASTO" BUTTON --- */
     .add-item-button {
-        font-size: 0.9em !important;
-        padding: 8px 12px !important; /* Slightly reduced vertical padding */
-        min-width: 0 !important;
-        width: 100%;
-        margin-bottom: 12px !important;
+        padding: 0 !important; 
+        min-width: 36px !important; 
+        width: 36px !important; 
+        height: 36px !important; 
+        margin-bottom: 10px !important;
         box-sizing: border-box !important;
+        border-radius: 6px !important; 
+        display: flex !important; /* Flex más específico */
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0 !important; /* Ocultar texto del botón */
     }
     .add-item-button .material-symbols-outlined {
-        font-size: 1.1em !important; /* Icon size within button */
-        margin-right: 6px !important;
+        font-size: 16px !important; /* Reducir un poco más el tamaño */
+        margin: 0 !important; 
+        padding: 0 !important; /* Asegurar que no hay padding */
+        line-height: 1 !important; 
+        display: flex !important; /* Flex también en el icono */
+        align-items: center !important; /* Centrado vertical del icono */
+        justify-content: center !important; /* Centrado horizontal del icono */
+        width: 100% !important; /* Ocupar todo el espacio del botón */
+        height: 100% !important; /* Ocupar toda la altura del botón */
     }
 
     /* --- OCULTAR CELDA VACÍA DE JUSTIFICACIONES EN MÓVIL --- */
