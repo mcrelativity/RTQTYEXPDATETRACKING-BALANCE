@@ -39,7 +39,7 @@ Comprehensive internal web application developed with React and Firebase. Origin
 
 ## Tech Stack 💻
 * **Frontend:** React (v18+) with Vite, JavaScript (ES6+), CSS3
-* **Backend & Database:** Firebase, Node.js
+* **Backend & Database:** Node.js, Firebase
     * Firebase Authentication (Email/Password)
     * Firebase Realtime Database
 * **Routing:** React Router DOM (v6)
