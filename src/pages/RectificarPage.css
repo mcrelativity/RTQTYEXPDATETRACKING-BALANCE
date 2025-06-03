@@ -1,38 +1,51 @@
-/* RectificarPage.css */
-/* Styles for RectificarPage responsiveness and specific component styling */
 
-/* General page container */
+/*
+  Archivo: RectificarPage.css
+  Descripción: Estilos para la responsividad y componentes específicos de la página de Rectificar.
+  Incluye reglas para el contenedor principal, cabecera, tarjetas, tablas y utilidades visuales.
+  Todos los comentarios están en español para facilitar el mantenimiento.
+  @author (Documentación revisada) GitHub Copilot
+*/
+
+/* Contenedor general de la página */
+
+
 .rectificar-page-container {
     padding: 20px;
-    max-width: 1200px; /* Max width for larger screens */
-    margin: 0 auto; /* Center the content */
+    max-width: 1200px; /* Máximo ancho para pantallas grandes */
+    margin: 0 auto; /* Centra el contenido */
 }
 
-/* Header */
+
+/* Cabecera */
 .rectificar-page-header {
     margin-bottom: 25px;
 }
 
+
 .rectificar-page-header .header-content-wrapper {
     display: flex;
-    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+    flex-wrap: wrap; /* Permite que los elementos se acomoden en pantallas pequeñas */
     justify-content: space-between;
     align-items: center;
-    gap: 15px; /* Space between title and buttons */
+    gap: 15px; /* Espacio entre el título y los botones */
 }
 
+
 .rectificar-page-header h1 {
-    font-size: 1.8em; /* Adjust as needed */
+    font-size: 1.8em; /* Ajustar según necesidad */
     margin: 0;
-    flex-grow: 1; /* Allow title to take available space */
+    flex-grow: 1; /* Permite que el título ocupe el espacio disponible */
 }
+
 
 .rectificar-page-header .header-actions {
     display: flex;
     gap: 10px;
 }
 
-/* Cards */
+
+/* Tarjetas */
 .session-info-card,
 .desglose-caja-card,
 .gastos-card,
@@ -45,18 +58,21 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+
 .session-info-card .details-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 10px;
 }
 
+
 .session-info-card .details-grid p {
     margin: 5px 0;
     font-size: 0.95em;
 }
 
-/* Tables */
+
+/* Tablas */
 .excel-style-table {
     width: 100%;
     border-collapse: collapse;

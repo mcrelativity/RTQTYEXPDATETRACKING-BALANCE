@@ -55,7 +55,7 @@ import { database } from '../firebase/firebaseConfig';
 import { ref, push, serverTimestamp, get, update, set } from "firebase/database";
 import './RectificarConfirmAnimation.css';
 import './ModernSkeletonLoader.css';
-import './RectificarPage.css'; // Import the new CSS file
+import './RectificarPage.css'; // Importa el nuevo archivo CSS
 
 // --- Componentes auxiliares ---
 
@@ -78,22 +78,22 @@ function RectificarConfirmAnimation({ success, message, desc }) {
   );
 }
 
-// Modern Skeleton Loader con estructura similar a la página de rectificación
+// Loader esqueleto visual para la página de rectificación.
 /**
- * Skeleton Loader visual para la página de rectificación.
- * Muestra una animación de carga con estructura similar a la UI real.
+ * Loader esqueleto visual para la página de rectificación.
+ * Muestra una animación de carga con estructura similar a la interfaz real.
  * @returns {JSX.Element} Loader visual.
  */
 function RectificarSkeletonLoader() {
   return (
-    <div className="modern-skeleton-loader rectificar-page-container"> {/* Added rectificar-page-container for consistent padding */} 
-      {/* Header Skeleton */}
+    <div className="modern-skeleton-loader rectificar-page-container"> {/* Se agregó rectificar-page-container para padding consistente */} 
+      {/* Loader de encabezado */}
       <div className="modern-skeleton-card modern-skeleton-header-card">
         <div className="modern-skeleton-element modern-skeleton-title" style={{ width: '60%', height: '30px', marginBottom: '10px' }} />
         <div className="modern-skeleton-element modern-skeleton-button" style={{ width: '120px', height: '30px', position: 'absolute', top: '20px', right: '20px' }} />
       </div>
 
-      {/* Session Info Skeleton */}
+      {/* Loader de información de sesión */}
       <div className="modern-skeleton-card">
         <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '30%', height: '20px', marginBottom: '15px' }} />
         <div className="modern-skeleton-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
@@ -103,7 +103,7 @@ function RectificarSkeletonLoader() {
         </div>
       </div>
 
-      {/* Desglose de Caja Table Skeleton */}
+      {/* Loader de tabla de desglose de caja */}
       <div className="modern-skeleton-card">
         <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '40%', height: '20px', marginBottom: '15px' }} />
         <div className="modern-skeleton-table">
@@ -122,9 +122,9 @@ function RectificarSkeletonLoader() {
         </div>
       </div>
 
-      {/* Gastos and Boletas Skeletons (side-by-side) */}
+      {/* Loaders de Gastos y Boletas (lado a lado) */}
       <div className="additional-actions-grid-skeleton" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
-        {/* Gastos Skeleton */}
+        {/* Loader de Gastos */}
         <div className="modern-skeleton-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
             <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '30%', height: '20px' }} />
@@ -142,7 +142,7 @@ function RectificarSkeletonLoader() {
           ))}
         </div>
 
-        {/* Boletas Skeleton */}
+        {/* Loader de Boletas */}
         <div className="modern-skeleton-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
             <div className="modern-skeleton-element modern-skeleton-subtitle" style={{ width: '40%', height: '20px' }} />
@@ -159,7 +159,7 @@ function RectificarSkeletonLoader() {
         </div>
       </div>
 
-      {/* Action Buttons Skeleton */}
+      {/* Loader de botones de acción */}
       <div className="modern-skeleton-card" style={{ textAlign: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
         <div className="modern-skeleton-element modern-skeleton-action-button" style={{ width: '250px', height: '36px', margin: '0 auto' }} />
       </div>
@@ -168,7 +168,7 @@ function RectificarSkeletonLoader() {
 }
 
 // --- Configuración de la API y métodos de pago por defecto ---
-// Estas constantes definen cómo la aplicación interactúa con servicios externos y cómo entiende los métodos de pago.
+// Estas constantes definen cómo la aplicación interactúa con servicios externos y cómo interpreta los métodos de pago.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_ENDPOINT = `${API_BASE_URL}/odoo`;
 const BEARER_TOKEN = import.meta.env.VITE_API_BEARER_TOKEN;
@@ -207,7 +207,7 @@ async function callOdooApi(apiUrl, requestData) {
  * Utiliza callOdooApi para realizar la petición.
  * @param {string} apiUrl - URL del endpoint de la API.
  * @param {number|string} sessionId - ID de la sesión POS.
- * @returns {Promise<Array>} Array de pagos agrupados por método.
+ * @returns {Promise<Array>} Arreglo de pagos agrupados por método.
  */
 async function fetchSessionPayments(apiUrl, sessionId) {
   if (sessionId === null || sessionId === undefined) return []; // Retorna array vacío si no hay sessionId.
@@ -243,7 +243,7 @@ const formatCurrency = (amount) => {
 
 /**
  * Parsea y limpia un valor de input de monto, permitiendo solo números enteros positivos.
- * Elimina puntos y cualquier caracter no numérico.
+ * Elimina puntos y cualquier carácter no numérico.
  * @param {string|number} value - Valor a limpiar.
  * @returns {string} Valor numérico limpio como string.
  */
@@ -444,7 +444,7 @@ function RectificarPage() {
     }, duration);  
   }, []);
 
-  // --- Función utilitaria para debugging del estado del formulario ---
+  // --- Función utilitaria para depuración del estado del formulario ---
   const logCurrentFormState = useCallback((moment) => {
     console.log(`[DEBUG] Estado del formulario ${moment}:`, {
       mainFormData: formState.mainFormData,
@@ -475,7 +475,7 @@ function RectificarPage() {
   }, []);
 
   // --- Función memoizada para cargar los datos iniciales de la sesión desde Odoo y Firebase ---
-  // Esta función establece los datos base de la sesión, pagos, y cualquier rectificación existente.
+  // Esta función establece los datos base de la sesión, pagos y cualquier rectificación existente.
   // Es el primer paso en la carga de datos de la página.
   const loadInitialData = useCallback(async (passedSessionData, passedMode, passedReqId, urlSessionIdParam) => {
 
@@ -583,9 +583,8 @@ function RectificarPage() {
       throw new Error('Error al cargar datos detallados.');
     }
   }, [userRole]);
-  // Efecto unificado: carga inicial + borrador antes de renderizar UI
-  // Maestro effect: cargar datos iniciales y aplicar borrador con retry
-  // EFECTO MAESTRO: Carga datos base y aplica borrador de forma secuencial y atómica
+  // Efecto unificado: carga inicial + borrador antes de renderizar la UI
+  // Efecto maestro: carga datos base y aplica borrador de forma secuencial y atómica
   useEffect(() => {
     let cancelled = false;
     // Si la sesión está sin rectificar, no esperar existingRequestId ni autoRequestId

@@ -3,7 +3,7 @@
   Descripción: Estilos globales y utilidades para toda la aplicación GalenoTest.
   Incluye reglas de responsividad, estilos de botones, formularios, tablas, contenedores y utilidades visuales.
   Todos los comentarios y descripciones están en español para facilitar el mantenimiento.
-  @author (Documentación) Revisada por GitHub Copilot
+  @author (Documentación revisada) GitHub Copilot
 */
 
 /* Alerta visual para borrador cargado */
@@ -43,18 +43,18 @@
     margin: 0 !important;
     min-width: 0 !important;
     font-size: 1.05em !important;
-    padding: 13px 10px !important; /* Added horizontal padding */
+    padding: 13px 10px !important; /* Padding horizontal agregado */
     border-radius: 7px !important;
   }
   .modal-content, .modal-form {
-    padding: 15px 3vw !important; /* Increased padding */
+    padding: 15px 3vw !important; /* Padding aumentado */
   }
 }
 @media (max-width: 600px) {
   .form-actions, .review-actions-form, .button-group, .confirm-modal-actions {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 10px !important; /* Slightly increased gap */
+    gap: 10px !important; /* Espaciado ligeramente aumentado */
     width: 100% !important;
     margin: 0 auto 10px auto !important;
   }
