@@ -10,7 +10,7 @@
  * - Permite navegación a creación y edición de usuarios.
  * - Renderiza tabla con usuarios y estados de carga/error.
  *
- * @author (Documentación) Revisada por GitHub Copilot
+ * Documentación Revisada por GitHub Copilot
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

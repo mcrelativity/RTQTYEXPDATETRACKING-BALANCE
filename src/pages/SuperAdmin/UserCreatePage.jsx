@@ -11,7 +11,7 @@
  * - Permite ingresar datos y crear usuario en Auth y RTDB.
  * - Redirige a la lista de usuarios tras crear.
  *
- * @author (Documentación) Revisada por GitHub Copilot
+ *Documentación Revisada por GitHub Copilot
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

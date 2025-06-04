@@ -1,7 +1,7 @@
 /**
  * @file App.jsx
  * @description Componente principal de la aplicación React. Define las rutas, la protección de rutas según autenticación y roles, y el layout general.
- * @author Documentación Revisada por GitHub Copilot
+ * Documentación Revisada por GitHub Copilot
  */
 
 import React from 'react';

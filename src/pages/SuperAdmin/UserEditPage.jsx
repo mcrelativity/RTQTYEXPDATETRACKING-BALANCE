@@ -11,7 +11,7 @@
  * - Permite modificar rol y local asignado.
  * - Guarda los cambios en Firebase.
  *
- * @author (Documentación revisada) GitHub Copilot
+ *Documentación Revisada por GitHub Copilot
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';

@@ -1,7 +1,7 @@
 /**
  * @file main.jsx
  * @description Punto de entrada principal de la aplicación React. Renderiza el componente raíz y provee el contexto de autenticación global.
- * @author Documentación Revisada por GitHub Copilot
+ * Documentación Revisada por GitHub Copilot
  */
 
 import React from 'react';

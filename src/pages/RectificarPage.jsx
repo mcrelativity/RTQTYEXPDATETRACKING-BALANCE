@@ -12,7 +12,7 @@
  * - Renderizado condicional según rol y estado de la solicitud.
  * - Manejo de errores, notificaciones y animaciones de confirmación.
  *
- * @author Documentación Revisada por GitHub Copilot
+ * Documentación Revisada por GitHub Copilot
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -1337,7 +1337,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button attention"
-                                    title="Atención: Diferencia sin Justificar"
+                                    title="Atención: Diferencia sin Justificar (Superadmin)"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">warning</span>
@@ -1347,7 +1347,7 @@ function RectificarPage() {
                             return (
                                 <button 
                                     className="action-icon-button accept"
-                                    title="Revisado OK: Sin Diferencias"
+                                    title="Revisado OK: Sin Diferencias (Superadmin)"
                                     disabled={isSubmitting || isSavingDraft}
                                 >
                                     <span className="material-symbols-outlined">check_circle</span>
@@ -1478,7 +1478,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button attention"
-                                      title={`Atención: Diferencia sin Justificar en ${item.name}`}
+                                      title={`Atención: Diferencia sin Justificar en ${item.name} (Superadmin)`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">warning</span>
@@ -1488,7 +1488,7 @@ function RectificarPage() {
                               return (
                                   <button 
                                       className="action-icon-button accept"
-                                      title={`Revisado OK: Sin Diferencias en ${item.name}`}
+                                      title={`Revisado OK: Sin Diferencias en ${item.name} (Superadmin)`}
                                       disabled={isSubmitting || isSavingDraft}
                                   >
                                       <span className="material-symbols-outlined">check_circle</span>

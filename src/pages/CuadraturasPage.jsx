@@ -12,7 +12,7 @@
  * - Navegación a la página de rectificación según el estado y rol del usuario.
  * - Renderizado visual con animaciones de carga y manejo de errores.
  *
- * @author Documentación Revisada por GitHub Copilot
+ * Documentación Revisada por GitHub Copilot
  */
 import './CuadraturasSkeletonLoader.css';
 /**

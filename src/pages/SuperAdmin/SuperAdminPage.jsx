@@ -8,7 +8,7 @@
  * Estructura principal:
  * - Renderiza botones de acceso a gestión de usuarios, inventario y volver a inicio.
  *
- * @author (Documentación) Revisada por GitHub Copilot
+ * Documentación Revisada por GitHub Copilot
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
