@@ -49,3 +49,11 @@ Aplicación web interna integral desarrollada con React y Firebase. Originalment
 * **Integración de Datos Externos:** Consumo de API de Odoo para información de sesiones de caja.
 * **(Proceso Inicial):** Script de Python con Pandas y Openpyxl para conversión de Excel a JSON.
 * **(Proceso Final):** Uso de librería SheetJS (xlsx) para conversión y exportación de JSON a Excel.
+
+<img width="1911" height="938" alt="image" src="https://github.com/user-attachments/assets/0f8b4281-4016-440e-9d23-c51b244dbad9" />
+
+<img width="1915" height="944" alt="image" src="https://github.com/user-attachments/assets/4cb02326-821c-491d-a84a-76d8e2d153e6" />
+
+<img width="1901" height="941" alt="image" src="https://github.com/user-attachments/assets/a1f93ab1-87e7-41dd-ac5f-6a269287565f" />
+<img width="1916" height="940" alt="image" src="https://github.com/user-attachments/assets/1c46bbb0-d2d0-4dd6-9e22-75070f42dbe8" />
+<img width="1898" height="940" alt="image" src="https://github.com/user-attachments/assets/8f8ef451-7c7b-4239-9067-a6ee72a10329" />
